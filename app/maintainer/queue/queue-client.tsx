@@ -192,16 +192,16 @@ function QueueRow({
   const payload = item.payload as Partial<OfferInput>;
   return (
     <article className="border border-border bg-card transition-colors hover:border-foreground/30">
-      <div className="flex items-stretch gap-0">
+      <div className="flex flex-col items-stretch gap-0 sm:flex-row">
         {payload.imageUrl ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img
             src={payload.imageUrl}
             alt={payload.title ?? ""}
-            className="aspect-[4/3] w-40 shrink-0 border-r border-border object-cover"
+            className="aspect-[16/9] w-full shrink-0 border-b border-border object-cover sm:aspect-[4/3] sm:w-40 sm:border-b-0 sm:border-r"
           />
         ) : (
-          <div className="aspect-[4/3] w-40 shrink-0 border-r border-border bg-muted/40" />
+          <div className="aspect-[16/9] w-full shrink-0 border-b border-border bg-muted/40 sm:aspect-[4/3] sm:w-40 sm:border-b-0 sm:border-r" />
         )}
         <div className="flex flex-1 flex-col p-4">
           <div className="flex items-start justify-between gap-2">

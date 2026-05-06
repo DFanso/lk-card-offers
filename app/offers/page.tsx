@@ -45,14 +45,14 @@ export default async function OffersPage({
 
   return (
     <div className="space-y-6">
-      <header className="flex items-end justify-between border-b border-border pb-4">
+      <header className="flex items-end justify-between gap-4 border-b border-border pb-4">
         <div>
           <div className="section-label mb-2">Catalog</div>
-          <h1 className="text-2xl font-semibold tracking-tight">
+          <h1 className="text-xl font-semibold tracking-tight sm:text-2xl">
             All offers
           </h1>
         </div>
-        <div className="text-right text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        <div className="shrink-0 text-right text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:tracking-[0.22em]">
           <div className="num text-foreground text-base font-medium">
             {total.toString().padStart(3, "0")}
           </div>

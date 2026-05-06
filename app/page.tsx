@@ -45,11 +45,11 @@ export default async function HomePage() {
       <section className="grid gap-10 lg:grid-cols-12">
         <div className="lg:col-span-8">
           <div className="section-label mb-5">Issue 01 / Q2 {todayStr.slice(0, 4)}</div>
-          <h1 className="text-balance text-5xl font-semibold leading-[1.02] tracking-tight md:text-6xl lg:text-7xl">
+          <h1 className="text-balance text-3xl font-semibold leading-[1.05] tracking-tight sm:text-4xl md:text-5xl lg:text-6xl xl:text-7xl">
             Card offers,{" "}
             <span className="text-primary">curated daily.</span>
           </h1>
-          <p className="mt-8 max-w-prose text-sm leading-relaxed text-muted-foreground md:text-base">
+          <p className="mt-6 max-w-prose text-sm leading-relaxed text-muted-foreground md:mt-8 md:text-base">
             A community-curated catalog of valid credit and debit card
             promotions from Sri Lankan banks. Filter by bank, card type, and
             category to find the deals that match the cards in your wallet —

@@ -51,14 +51,16 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     }),
   ],
   callbacks: {
-    async jwt({ token, user, trigger }) {
+    async jwt({ token, user }) {
       if (user) {
         token.id = user.id as string;
         token.role = (user as { role: UserRoleValue }).role;
       }
 
-      // Refresh role from DB on session updates so revoked roles take effect.
-      if (trigger === "update" && token.id) {
+      // Always refresh role from DB so role changes (promotions/demotions)
+      // and revoked accounts take effect on the next request without
+      // requiring the user to sign out and back in.
+      if (token.id) {
         const refreshed = await db
           .select({ role: users.role })
           .from(users)

@@ -1,6 +1,6 @@
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { maintainerRequests, offerSubmissions } from "@/db/schema";
+import { maintainerRequests, offerSubmissions, users } from "@/db/schema";
 import { requireSession } from "@/lib/rbac";
 import { RequestMaintainerForm } from "./request-maintainer-form";
 import { Badge } from "@/components/ui/badge";
@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AccountPage() {
   const session = await requireSession();
-  const [submissions, requests] = await Promise.all([
+  const [submissions, requests, currentRow] = await Promise.all([
     db
       .select()
       .from(offerSubmissions)
@@ -21,8 +21,14 @@ export default async function AccountPage() {
       .from(maintainerRequests)
       .where(eq(maintainerRequests.userId, session.user.id))
       .orderBy(desc(maintainerRequests.createdAt)),
+    db
+      .select({ role: users.role })
+      .from(users)
+      .where(eq(users.id, session.user.id))
+      .limit(1),
   ]);
 
+  const currentRole = currentRow[0]?.role ?? session.user.role;
   const pendingRequest = requests.find((r) => r.status === "pending");
 
   return (
@@ -38,7 +44,7 @@ export default async function AccountPage() {
             variant="outline"
             className="ml-1 text-[10px] uppercase tracking-wider"
           >
-            {session.user.role}
+            {currentRole}
           </Badge>
         </p>
       </header>
@@ -51,7 +57,7 @@ export default async function AccountPage() {
           </span>
         </div>
         <Separator />
-        {session.user.role !== "user" ? (
+        {currentRole !== "user" ? (
           <p className="text-xs text-muted-foreground">
             You already have elevated access.
           </p>

@@ -15,6 +15,7 @@ export const metadata: Metadata = {
 import { Providers } from "@/components/providers/providers"
 import { Toaster } from "sonner"
 import { SiteHeader } from "@/components/site/header"
+import { SiteFooter } from "@/components/site/footer"
 
 export default function RootLayout({
   children,
@@ -25,10 +26,13 @@ export default function RootLayout({
     <html lang="en" className={jetbrainsMono.variable}>
       <body className="font-mono antialiased">
         <Providers>
-          <SiteHeader />
-          <main className="mx-auto w-full px-6 py-6 lg:px-10 2xl:px-14">
-            {children}
-          </main>
+          <div className="flex min-h-screen flex-col">
+            <SiteHeader />
+            <main className="mx-auto w-full flex-1 px-6 py-6 lg:px-10 2xl:px-14">
+              {children}
+            </main>
+            <SiteFooter />
+          </div>
         </Providers>
         <Toaster />
       </body>

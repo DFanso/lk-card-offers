@@ -1,11 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { useTransition } from "react";
+import { useState, useTransition } from "react";
+import { HugeiconsIcon } from "@hugeicons/react";
+import { ArrowDown01Icon } from "@hugeicons/core-free-icons";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Skeleton } from "@/components/ui/skeleton";
+import { cn } from "@/lib/utils";
 import {
   Select,
   SelectContent,
@@ -21,6 +24,7 @@ export function OfferFilters() {
   const router = useRouter();
   const params = useSearchParams();
   const [pending, startTransition] = useTransition();
+  const [mobileOpen, setMobileOpen] = useState(false);
   const banks = useBanks();
   const cardTypes = useCardTypes();
   const categories = useCategories();
@@ -61,11 +65,36 @@ export function OfferFilters() {
   return (
     <aside className="space-y-6">
       <div className="border border-border bg-card">
-        <div className="panel-header">
-          <span>Filters</span>
-          <span className="num text-foreground">{activeCount.toString().padStart(2, "0")}</span>
-        </div>
-        <div className="space-y-6 p-4">
+        <button
+          type="button"
+          onClick={() => setMobileOpen((v) => !v)}
+          className="panel-header w-full lg:cursor-default lg:pointer-events-none"
+          aria-expanded={mobileOpen}
+        >
+          <span className="flex items-center gap-2">
+            Filters
+            {activeCount > 0 && (
+              <span className="rounded-none bg-primary px-1.5 py-px text-[10px] text-primary-foreground">
+                {activeCount}
+              </span>
+            )}
+          </span>
+          <span className="flex items-center gap-2 lg:hidden">
+            <span className="num text-foreground">{activeCount.toString().padStart(2, "0")}</span>
+            <HugeiconsIcon
+              icon={ArrowDown01Icon}
+              strokeWidth={2}
+              className={cn(
+                "size-4 transition-transform",
+                mobileOpen && "rotate-180",
+              )}
+            />
+          </span>
+          <span className="num hidden text-foreground lg:inline">
+            {activeCount.toString().padStart(2, "0")}
+          </span>
+        </button>
+        <div className={cn("space-y-6 p-4", !mobileOpen && "hidden lg:block")}>
           <div className="space-y-2">
             <div className="section-label">Search</div>
             <form
@@ -173,7 +202,7 @@ export function OfferFilters() {
             </div>
           </div>
         </div>
-        <div className="border-t border-border p-3">
+        <div className={cn("border-t border-border p-3", !mobileOpen && "hidden lg:block")}>
           <Button
             variant="outline"
             size="sm"
