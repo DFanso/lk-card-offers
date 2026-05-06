@@ -4,11 +4,19 @@ const dateString = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Use YYYY-MM-DD");
 
+const urlOrUploadPath = z
+  .string()
+  .min(1)
+  .refine(
+    (v) => v.startsWith("/") || /^https?:\/\//i.test(v),
+    "Must be a full URL or an upload path starting with /",
+  );
+
 export const offerInputSchema = z
   .object({
     title: z.string().min(3).max(160),
     description: z.string().min(10).max(4000),
-    imageUrl: z.string().url().optional().nullable(),
+    imageUrl: urlOrUploadPath.optional().nullable(),
     merchantId: z.string().uuid().optional().nullable(),
     newMerchantName: z.string().min(2).max(160).optional().nullable(),
     categoryId: z.string().uuid(),
