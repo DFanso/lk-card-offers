@@ -1,8 +1,21 @@
 import NextAuth from "next-auth";
 import Credentials from "next-auth/providers/credentials";
+import { eq } from "drizzle-orm";
+import bcrypt from "bcryptjs";
 import { z } from "zod";
+import { db } from "@/db";
+import { users, type UserRoleValue } from "@/db/schema";
+
+const credentialsSchema = z.object({
+  email: z.string().email(),
+  password: z.string().min(6),
+});
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  session: { strategy: "jwt" },
+  pages: {
+    signIn: "/login",
+  },
   providers: [
     Credentials({
       credentials: {
@@ -10,21 +23,60 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         password: { label: "Password", type: "password" },
       },
       authorize: async (credentials) => {
-        const parsedCredentials = z
-          .object({ email: z.string().email(), password: z.string().min(6) })
-          .safeParse(credentials);
+        const parsed = credentialsSchema.safeParse(credentials);
+        if (!parsed.success) return null;
 
-        if (parsedCredentials.success) {
-          const { email, password } = parsedCredentials.data;
-          // Add your own database logic here to verify the user
-          // For now, this is a placeholder that always works with dummy data
-          if (email === "user@example.com" && password === "123456") {
-            return { id: "1", name: "User", email: "user@example.com" };
-          }
-        }
+        const { email, password } = parsed.data;
+        const normalizedEmail = email.trim().toLowerCase();
 
-        return null;
+        const found = await db
+          .select()
+          .from(users)
+          .where(eq(users.email, normalizedEmail))
+          .limit(1);
+
+        const user = found[0];
+        if (!user) return null;
+
+        const ok = await bcrypt.compare(password, user.passwordHash);
+        if (!ok) return null;
+
+        return {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+        };
       },
     }),
   ],
+  callbacks: {
+    async jwt({ token, user }) {
+      if (user) {
+        token.id = user.id as string;
+        token.role = (user as { role: UserRoleValue }).role;
+      }
+
+      // Always refresh role from DB so role changes (promotions/demotions)
+      // and revoked accounts take effect on the next request without
+      // requiring the user to sign out and back in.
+      if (token.id) {
+        const refreshed = await db
+          .select({ role: users.role })
+          .from(users)
+          .where(eq(users.id, token.id as string))
+          .limit(1);
+        if (refreshed[0]) token.role = refreshed[0].role;
+      }
+
+      return token;
+    },
+    async session({ session, token }) {
+      if (session.user && token) {
+        session.user.id = token.id as string;
+        session.user.role = token.role as UserRoleValue;
+      }
+      return session;
+    },
+  },
 });
