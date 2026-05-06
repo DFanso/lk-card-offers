@@ -39,7 +39,7 @@ export async function SiteHeader() {
             LK / Card Offers
           </span>
           <span className="hidden text-[10px] uppercase tracking-[0.25em] text-muted-foreground sm:inline">
-            // ticker of the wallet
+            {"// ticker of the wallet"}
           </span>
         </Link>
         <nav className="hidden items-center gap-6 text-[11px] uppercase tracking-[0.2em] md:flex">
