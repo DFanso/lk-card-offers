@@ -1,72 +1,231 @@
-# Next.js Fullstack Starter Template
+# LK Card Offers
 
 ![Next.js](https://img.shields.io/badge/Next.js-16.1-black?style=for-the-badge&logo=next.js)
 ![React](https://img.shields.io/badge/React-19-blue?style=for-the-badge&logo=react)
 ![TypeScript](https://img.shields.io/badge/TypeScript-5-blue?style=for-the-badge&logo=typescript)
 ![Tailwind CSS](https://img.shields.io/badge/Tailwind_4-38B2AC?style=for-the-badge&logo=tailwind-css&logoColor=white)
 ![shadcn/ui](https://img.shields.io/badge/shadcn%2Fui-000000?style=for-the-badge&logo=shadcnui&logoColor=white)
+![Drizzle](https://img.shields.io/badge/Drizzle-C5F74F?style=for-the-badge&logo=drizzle&logoColor=black)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 ![Bun](https://img.shields.io/badge/Bun-000000?style=for-the-badge&logo=bun&logoColor=white)
 
-A modern, batteries-included Next.js 16 starter template pre-configured with the most popular tools in the React ecosystem.
+A community-curated catalog of valid credit and debit card promotions from Sri Lankan banks. Filter by bank, card type, and category to find deals that match the cards in your wallet — no scraping noise, no expired clutter.
+
+---
 
 ## Features
 
-- **Framework**: [Next.js 16](https://nextjs.org/) (App Router, Turbopack)
-- **UI & Styling**: [Tailwind CSS v4](https://tailwindcss.com/) & [shadcn/ui](https://ui.shadcn.com/)
-- **Authentication**: [Auth.js (NextAuth v5 beta)](https://authjs.dev/) with Edge Proxy routing
-- **Data Fetching & State**: [TanStack React Query v5](https://tanstack.com/query)
-- **Global State**: [Zustand](https://github.com/pmndrs/zustand)
-- **Validation**: [Zod](https://zod.dev/)
-- **Notifications**: [Sonner](https://sonner.emilkowal.ski/)
-- **Icons**: Hugeicons
-- **Package Manager**: [Bun](https://bun.sh/)
+<table>
+  <tr>
+    <td width="50%" valign="top">
+      <h3>Public catalog</h3>
+      <p>Browse hundreds of live card promotions, filter by bank, card type, category, or keyword. Editorial cards with images, validity countdowns, and source links. Read-time auto-expiry hides offers past their end date.</p>
+    </td>
+    <td width="50%" valign="top">
+      <h3>Role-based access</h3>
+      <p>Four roles wired through Auth.js: <code>user</code>, <code>maintainer</code>, <code>admin</code>, <code>super_admin</code>. Role is refreshed from the DB on every JWT callback, so promotions take effect on the next request without re-login.</p>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h3>Submission queue</h3>
+      <p>Logged-in users submit new offers. Maintainers review pending submissions, approve to publish (auto-creating new merchants), or reject with a note. Direct-publish path for trusted maintainer entries.</p>
+    </td>
+    <td valign="top">
+      <h3>Admin master data</h3>
+      <p>CRUD for banks, card types, categories, merchants. Soft-delete on entries referenced by live offers protects the catalog. Maintainer-request queue and super-admin user-role management.</p>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h3>Bank scrapers</h3>
+      <p>One-shot import scripts for DFCC, Commercial Bank, and People's Bank pull ~300 offers in seconds. Idempotent on source URL; <code>--reset</code> wipes per-bank entries before re-importing. Hotlinked images are downloaded locally to bypass referer protection.</p>
+    </td>
+    <td valign="top">
+      <h3>Image uploads</h3>
+      <p>Optional promo image per offer via paste-URL or file upload (JPG/PNG/WEBP/GIF up to 5 MB). Uploaded files land under <code>/public/uploads/offers/</code>. Server action validates MIME, size, and auth before writing.</p>
+    </td>
+  </tr>
+  <tr>
+    <td valign="top">
+      <h3>Searchable merchants</h3>
+      <p>~280 merchants in the catalog. Offer form uses a Combobox so picking among them is type-ahead fast, and a "+ Add new merchant" toggle lets contributors propose new ones inline (case-insensitive dedup at save time).</p>
+    </td>
+    <td valign="top">
+      <h3>Distinctive design</h3>
+      <p>Financial-wire/terminal aesthetic: JetBrains Mono everywhere, sharp 0-radius corners, warm bone background with a saffron-amber accent, section codes and hairline rules. Mobile-responsive header, hero, filters, and cards.</p>
+    </td>
+  </tr>
+</table>
 
-## Use This Template
+---
 
-Create a new project using this template:
+## Tech Stack
 
-```bash
-bunx create-next-app@latest my-app --example https://github.com/dfanso/nextjs-shadcn-personal-template
-```
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <h3>Frontend</h3>
+      <ul>
+        <li><a href="https://nextjs.org/">Next.js 16</a> App Router (Turbopack)</li>
+        <li><a href="https://react.dev/">React 19</a></li>
+        <li><a href="https://tailwindcss.com/">Tailwind CSS v4</a></li>
+        <li><a href="https://ui.shadcn.com/">shadcn/ui</a> (base-lyra style)</li>
+        <li><a href="https://base-ui.com/">Base UI</a> primitives</li>
+        <li><a href="https://hugeicons.com/">Hugeicons</a></li>
+        <li>JetBrains Mono via <code>next/font</code></li>
+      </ul>
+    </td>
+    <td width="33%" valign="top">
+      <h3>Backend</h3>
+      <ul>
+        <li><a href="https://orm.drizzle.team/">Drizzle ORM</a></li>
+        <li><a href="https://www.postgresql.org/">PostgreSQL</a> via <code>postgres-js</code></li>
+        <li><a href="https://authjs.dev/">Auth.js v5</a> (Credentials, JWT)</li>
+        <li><a href="https://www.npmjs.com/package/bcryptjs">bcryptjs</a> password hashing</li>
+        <li>Next.js Server Actions for mutations</li>
+        <li>Route Handlers for read APIs</li>
+      </ul>
+    </td>
+    <td width="33%" valign="top">
+      <h3>State, validation, scraping</h3>
+      <ul>
+        <li><a href="https://tanstack.com/query/latest">TanStack Query v5</a></li>
+        <li><a href="https://github.com/pmndrs/zustand">Zustand</a> (client UI state)</li>
+        <li><a href="https://zod.dev/">Zod 4</a> (input validation)</li>
+        <li><a href="https://cheerio.js.org/">Cheerio</a> (bank scrapers)</li>
+        <li><a href="https://sonner.emilkowal.ski/">Sonner</a> (toasts)</li>
+        <li><a href="https://bun.sh/">Bun</a> + <code>tsx</code> (runtime + scripts)</li>
+      </ul>
+    </td>
+  </tr>
+</table>
 
-Or with pnpm/npm/yarn:
-
-```bash
-pnpm dlx create-next-app@latest my-app --example https://github.com/dfanso/nextjs-shadcn-personal-template
-# or
-npx create-next-app@latest my-app --example https://github.com/dfanso/nextjs-shadcn-personal-template
-```
+---
 
 ## Getting Started
 
-1. **Clone the repository and install dependencies**
+### 1. Install dependencies
 
 ```bash
 bun install
 ```
 
-2. **Set up Environment Variables**
+### 2. Configure environment variables
 
-Copy the `.env.example` file to `.env.local`:
+Copy the example file and fill in the values:
 
 ```bash
-cp .env.example .env.local
+cp .env.example .env
 ```
 
-Make sure to generate a random secret for `AUTH_SECRET` (e.g., using `openssl rand -base64 32`).
+| Variable                   | Purpose                                                              |
+| -------------------------- | -------------------------------------------------------------------- |
+| `DATABASE_URL`             | PostgreSQL connection string (URL-encode special chars in passwords) |
+| `AUTH_SECRET`              | JWT signing secret (`openssl rand -base64 32`)                       |
+| `NEXTAUTH_URL`             | Site URL — `http://localhost:3000` for dev                           |
+| `CRON_SECRET`              | Header secret for the `expire-offers` cron endpoint                  |
+| `SEED_SUPERADMIN_EMAIL`    | Bootstrapped super-admin email (default `super@example.com`)         |
+| `SEED_SUPERADMIN_PASSWORD` | Bootstrapped super-admin password                                    |
 
-3. **Run the development server**
+### 3. Create and migrate the database
+
+```bash
+bun db:create     # creates the database if it doesn't exist
+bun db:migrate    # applies migrations from db/migrations
+bun db:seed       # super admin + 6 banks, 5 card types, 6 categories, sample offers
+```
+
+### 4. Run the dev server
 
 ```bash
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) and sign in with `super@example.com` / `password123` to bootstrap.
 
-## Project Structure Highlights
+---
 
-- `lib/auth.ts`: Auth.js core configuration and handlers
-- `proxy.ts`: Next.js edge proxy protecting routes using NextAuth
-- `components/providers/`: Root providers context (Session, Query)
-- `components/ui/`: shadcn/ui base components
-- `lib/stores/`: Zustand global state examples
+## Bank Importers
+
+The catalog is seeded with sample data; for real volume run the scrapers.
+
+```bash
+bun scrape:dfcc          # ~130 offers from dfcc.lk/credit-card-promotions
+bun scrape:combank       # ~25 offers from combank.lk/rewards-promotions
+bun scrape:peoples       # ~145 offers from peoplesbank.lk/special-offers
+```
+
+Each scraper is idempotent on `sourceUrl` — safe to re-run on a schedule. Pass `-- --reset` to wipe that bank's offers and re-import:
+
+```bash
+bun scrape:dfcc -- --reset
+```
+
+People's Bank's image CDN blocks hotlinking, so its scraper downloads images to `/public/uploads/scraped/peoples/` and rewrites the URL to a local path.
+
+---
+
+## Auto-expiry
+
+Per PRD rule 2.A, offers past their `endDate` are hidden from the public listing.
+
+- **Read-time** (always-on): every public listing query joins on `status = 'published' AND end_date >= today`.
+- **Bookkeeping**: `expireDueOffers()` flips `published` → `expired` for due rows. Exposed at `POST /api/cron/expire-offers` (header-guarded by `CRON_SECRET`).
+
+```bash
+curl -X POST -H "x-cron-secret: $CRON_SECRET" \
+  https://your-domain/api/cron/expire-offers
+```
+
+---
+
+## Project Structure
+
+```
+app/
+  (auth)/login,register/        # auth pages
+  account/                      # logged-in user account
+  admin/                        # admin master data + offers + users
+  api/                          # JSON read endpoints + cron
+  maintainer/                   # submission queue + offer publish
+  offers/                       # public listing + detail
+  page.tsx                      # editorial home
+components/
+  forms/offer-form.tsx          # shared create/edit/submit form
+  site/                         # header, footer, nav, cards, filters
+  ui/                           # shadcn primitives (Base UI based)
+db/
+  schema.ts                     # Drizzle table + enum definitions
+  migrations/                   # generated SQL migrations
+  seed.ts                       # initial seed data
+lib/
+  actions/                      # server actions (auth, offers, master, …)
+  auth.ts                       # Auth.js v5 config + role refresh
+  queries-server/               # server-side DB read helpers
+  queries/                      # client TanStack Query hooks
+  rbac.ts                       # role hierarchy and guards
+  validation/                   # Zod schemas
+scripts/
+  _shared.ts                    # shared scraper helpers
+  scrape-{dfcc,combank,peoples}.ts
+  create-database.ts
+proxy.ts                        # Next 16 middleware: route role gating
+```
+
+---
+
+## Roles
+
+| Role          | Can                                                                |
+| ------------- | ------------------------------------------------------------------ |
+| `user`        | Browse offers, submit offers, request maintainer access             |
+| `maintainer`  | All of the above + approve/reject submissions, publish direct offers |
+| `admin`       | All of the above + master data CRUD, approve maintainer requests    |
+| `super_admin` | All of the above + assign any role to any user                      |
+
+---
+
+## License
+
+This is a personal project. Code is private until otherwise indicated.
