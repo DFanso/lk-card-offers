@@ -1,6 +1,12 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { banks, categories, merchants, offers } from "@/db/schema";
+import {
+  banks,
+  categories,
+  merchants,
+  offerBanks,
+  offers,
+} from "@/db/schema";
 
 export type CategoryCount = {
   id: string;
@@ -58,16 +64,19 @@ export async function getCategoryCounts(): Promise<CategoryCount[]> {
       id: categories.id,
       name: categories.name,
       slug: categories.slug,
-      count: sql<number>`(
-        select count(*)::int
-        from ${offers}
-        where ${offers.categoryId} = ${categories.id}
-          and ${offers.status} = 'published'
-          and ${offers.endDate} >= ${todayStr}
-      )`,
+      count: sql<number>`count(${offers.id})::int`,
     })
     .from(categories)
-    .where(eq(categories.isActive, true));
+    .leftJoin(
+      offers,
+      and(
+        eq(offers.categoryId, categories.id),
+        eq(offers.status, "published"),
+        gte(offers.endDate, todayStr),
+      ),
+    )
+    .where(eq(categories.isActive, true))
+    .groupBy(categories.id, categories.name, categories.slug);
   return rows.sort((a, b) => b.count - a.count);
 }
 
@@ -78,16 +87,19 @@ export async function getBankCounts(): Promise<BankCount[]> {
       id: banks.id,
       name: banks.name,
       slug: banks.slug,
-      count: sql<number>`(
-        select count(distinct ob.offer_id)::int
-        from offer_banks ob
-        inner join ${offers} o on o.id = ob.offer_id
-        where ob.bank_id = ${banks.id}
-          and o.status = 'published'
-          and o.end_date >= ${todayStr}
-      )`,
+      count: sql<number>`count(distinct ${offerBanks.offerId})::int`,
     })
     .from(banks)
-    .where(eq(banks.isActive, true));
+    .leftJoin(offerBanks, eq(offerBanks.bankId, banks.id))
+    .leftJoin(
+      offers,
+      and(
+        eq(offers.id, offerBanks.offerId),
+        eq(offers.status, "published"),
+        gte(offers.endDate, todayStr),
+      ),
+    )
+    .where(eq(banks.isActive, true))
+    .groupBy(banks.id, banks.name, banks.slug);
   return rows.sort((a, b) => b.count - a.count);
 }

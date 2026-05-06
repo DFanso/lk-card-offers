@@ -25,8 +25,8 @@ export default async function HomePage() {
     getHomeStats(),
     getCategoryCounts(),
     getBankCounts(),
-    listOffers({ pageSize: 9 }),
-    listOffers({ pageSize: 4, sort: "ending_soon", endsBefore: sevenDaysOut }),
+    listOffers({ pageSize: 10 }),
+    listOffers({ pageSize: 5, sort: "ending_soon", endsBefore: sevenDaysOut }),
   ]);
 
   const stamp = now
@@ -146,7 +146,7 @@ export default async function HomePage() {
             All offers →
           </Link>
         </div>
-        <div className="grid gap-px border border-border bg-border sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+        <div className="grid gap-px border border-border bg-border sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
           {categories.map((c, i) => (
             <Link
               key={c.id}
@@ -184,7 +184,7 @@ export default async function HomePage() {
               {stats.banks} issuers
             </span>
           </div>
-          <div className="grid gap-px border border-border bg-border sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6">
+          <div className="grid gap-px border border-border bg-border sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             {banks.map((b) => (
               <Link
                 key={b.id}
@@ -222,7 +222,7 @@ export default async function HomePage() {
               expires within 7 days
             </span>
           </div>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             {endingSoon.items.map((offer, i) => (
               <OfferCard key={offer.id} offer={offer} index={i + 1} />
             ))}
@@ -251,7 +251,7 @@ export default async function HomePage() {
             No offers yet. Be the first to submit one.
           </p>
         ) : (
-          <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+          <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5">
             {latest.items.map((offer, i) => (
               <OfferCard key={offer.id} offer={offer} index={i + 1} />
             ))}
