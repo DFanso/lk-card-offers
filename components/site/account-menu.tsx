@@ -11,7 +11,6 @@ import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -47,12 +46,10 @@ export function AccountMenu({ name, email, role, signOutAction }: AccountMenuPro
         />
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" sideOffset={6} className="min-w-56">
-        <DropdownMenuLabel>
-          <div className="flex flex-col gap-0.5">
-            <span className="text-sm font-medium text-foreground">{name}</span>
-            <span className="text-[11px] text-muted-foreground">{email}</span>
-          </div>
-        </DropdownMenuLabel>
+        <div className="flex flex-col gap-0.5 px-2 py-2">
+          <span className="text-sm font-medium text-foreground">{name}</span>
+          <span className="text-[11px] text-muted-foreground">{email}</span>
+        </div>
         <DropdownMenuSeparator />
         <DropdownMenuItem render={<Link href="/account" />}>
           My account
