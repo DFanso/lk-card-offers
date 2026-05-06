@@ -228,4 +228,4 @@ proxy.ts                        # Next 16 middleware: route role gating
 
 ## License
 
-This is a personal project. Code is private until otherwise indicated.
+[MIT](LICENSE) © 2026 Leo Gavin
