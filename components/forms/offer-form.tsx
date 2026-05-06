@@ -15,6 +15,14 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox";
+import {
   useBanks,
   useCardTypes,
   useCategories,
@@ -223,27 +231,40 @@ export function OfferForm({
             </button>
           </div>
           {merchantMode === "existing" ? (
-            <Select value={merchantId} onValueChange={(v) => setMerchantId(v ?? "")}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select merchant…">
-                  {(value: string) =>
-                    value
-                      ? merchants.data?.items.find((m) => m.id === value)?.name ??
-                        "Loading…"
-                      : "Select merchant…"
-                  }
-                </SelectValue>
-              </SelectTrigger>
-              <SelectContent>
-                {merchants.data?.items
-                  .filter((m) => m.isActive)
-                  .map((m) => (
-                    <SelectItem key={m.id} value={m.id}>
-                      {m.name}
-                    </SelectItem>
-                  ))}
-              </SelectContent>
-            </Select>
+            (() => {
+              const list =
+                merchants.data?.items.filter((m) => m.isActive) ?? [];
+              const selectedName =
+                list.find((m) => m.id === merchantId)?.name ?? "";
+              return (
+                <Combobox
+                  items={list.map((m) => m.name)}
+                  value={selectedName}
+                  onValueChange={(name: string | null) => {
+                    const match = list.find((m) => m.name === name);
+                    setMerchantId(match?.id ?? "");
+                  }}
+                >
+                  <ComboboxInput
+                    placeholder={
+                      list.length
+                        ? `Search ${list.length} merchants…`
+                        : "Loading merchants…"
+                    }
+                  />
+                  <ComboboxContent>
+                    <ComboboxEmpty>No merchants match.</ComboboxEmpty>
+                    <ComboboxList>
+                      {(name: string) => (
+                        <ComboboxItem key={name} value={name}>
+                          {name}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxList>
+                  </ComboboxContent>
+                </Combobox>
+              );
+            })()
           ) : (
             <Input
               name="newMerchantName"

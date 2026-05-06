@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gte, inArray, like, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, like, lte, or, sql } from "drizzle-orm";
 import { db } from "@/db";
 import {
   banks,
@@ -35,6 +35,8 @@ type ListOptions = {
   includeExpired?: boolean;
   page?: number;
   pageSize?: number;
+  sort?: "latest" | "ending_soon";
+  endsBefore?: string;
 };
 
 export async function listOffers(opts: ListOptions = {}): Promise<{
@@ -55,6 +57,9 @@ export async function listOffers(opts: ListOptions = {}): Promise<{
   }
   if (opts.categoryId) {
     baseConditions.push(eq(offers.categoryId, opts.categoryId));
+  }
+  if (opts.endsBefore) {
+    baseConditions.push(lte(offers.endDate, opts.endsBefore));
   }
   if (opts.q && opts.q.trim()) {
     const term = `%${opts.q.trim().toLowerCase()}%`;
@@ -128,7 +133,11 @@ export async function listOffers(opts: ListOptions = {}): Promise<{
     .leftJoin(merchants, eq(merchants.id, offers.merchantId))
     .leftJoin(categories, eq(categories.id, offers.categoryId))
     .where(where)
-    .orderBy(desc(offers.publishedAt), desc(offers.createdAt))
+    .orderBy(
+      ...(opts.sort === "ending_soon"
+        ? [asc(offers.endDate), desc(offers.publishedAt)]
+        : [desc(offers.publishedAt), desc(offers.createdAt)]),
+    )
     .limit(pageSize)
     .offset(offset);
 
