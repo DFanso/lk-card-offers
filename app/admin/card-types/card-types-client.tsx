@@ -6,50 +6,134 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   createCardType,
   deleteCardType,
   updateCardType,
 } from "@/lib/actions/master";
-import type { CardType } from "@/db/schema";
+import type { CardType, CardTypeKindValue } from "@/db/schema";
+
+const KINDS: { value: CardTypeKindValue; label: string }[] = [
+  { value: "credit", label: "Credit" },
+  { value: "debit", label: "Debit" },
+  { value: "other", label: "Other" },
+];
+
+type FormState = {
+  name: string;
+  kind: CardTypeKindValue;
+  isActive: boolean;
+};
+
+const empty: FormState = { name: "", kind: "credit", isActive: true };
+
+function CardTypeForm({
+  state,
+  onChange,
+}: {
+  state: FormState;
+  onChange: (next: FormState) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Name</Label>
+        <Input
+          value={state.name}
+          onChange={(e) => onChange({ ...state, name: e.target.value })}
+          required
+        />
+      </div>
+      <div>
+        <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Kind</Label>
+        <Select
+          value={state.kind}
+          onValueChange={(v) =>
+            onChange({ ...state, kind: (v as CardTypeKindValue) ?? "credit" })
+          }
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {KINDS.map((k) => (
+              <SelectItem key={k.value} value={k.value}>
+                {k.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <label className="flex items-center gap-2 text-xs">
+        <Checkbox
+          checked={state.isActive}
+          onCheckedChange={(v) => onChange({ ...state, isActive: !!v })}
+        />
+        <span>Active</span>
+      </label>
+    </div>
+  );
+}
 
 export function CardTypesClient({ initial }: { initial: CardType[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createState, setCreateState] = useState<FormState>(empty);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editState, setEditState] = useState<FormState>(empty);
 
-  function handleCreate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  function openEdit(c: CardType) {
+    setEditId(c.id);
+    setEditState({ name: c.name, kind: c.kind, isActive: c.isActive });
+  }
+
+  function submitCreate() {
     setError(null);
-    const fd = new FormData(e.currentTarget);
-    const input = {
-      name: String(fd.get("name") ?? ""),
-      kind: fd.get("kind") as "credit" | "debit" | "other",
-      isActive: true,
-    };
-    const form = e.currentTarget;
     startTransition(async () => {
-      const result = await createCardType(input);
+      const result = await createCardType(createState);
       if (!result.ok) setError(result.error);
       else {
-        form.reset();
+        setCreateState(empty);
+        setCreateOpen(false);
         router.refresh();
       }
     });
   }
 
-  function handleUpdate(id: string, fd: FormData) {
-    const input = {
-      name: String(fd.get("name") ?? ""),
-      kind: fd.get("kind") as "credit" | "debit" | "other",
-      isActive: fd.get("isActive") === "on",
-    };
+  function submitEdit() {
+    if (!editId) return;
+    setError(null);
     startTransition(async () => {
-      const result = await updateCardType(id, input);
+      const result = await updateCardType(editId, editState);
       if (!result.ok) setError(result.error);
       else {
-        setEditingId(null);
+        setEditId(null);
         router.refresh();
       }
     });
@@ -64,118 +148,95 @@ export function CardTypesClient({ initial }: { initial: CardType[] }) {
     });
   }
 
-  const selectClass = "h-8 w-full rounded-none border bg-transparent px-2.5 text-xs";
-
   return (
-    <div className="space-y-6 text-xs">
-      <form
-        onSubmit={handleCreate}
-        className="grid gap-2 rounded border p-3 md:grid-cols-3"
-      >
-        <div>
-          <Label htmlFor="name">Name</Label>
-          <Input id="name" name="name" required />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="ticker">
+          {initial.length.toString().padStart(2, "0")} types · {initial.filter((c) => c.isActive).length} active
         </div>
-        <div>
-          <Label htmlFor="kind">Kind</Label>
-          <select id="kind" name="kind" className={selectClass} defaultValue="credit">
-            <option value="credit">credit</option>
-            <option value="debit">debit</option>
-            <option value="other">other</option>
-          </select>
-        </div>
-        <div className="flex items-end">
-          <Button type="submit" size="sm" disabled={pending}>
-            Add card type
-          </Button>
-        </div>
-      </form>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger render={<Button size="sm">+ New card type</Button>} />
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add card type</DialogTitle>
+            </DialogHeader>
+            <CardTypeForm state={createState} onChange={setCreateState} />
+            {error && <p className="text-[11px] text-destructive">{error}</p>}
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setCreateOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={submitCreate} disabled={pending}>
+                {pending ? "Saving…" : "Add"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      {error && <p className="text-destructive">{error}</p>}
-
-      <table className="w-full border-collapse text-left">
-        <thead className="border-b">
-          <tr>
-            <th className="py-1.5 font-medium">Name</th>
-            <th className="py-1.5 font-medium">Kind</th>
-            <th className="py-1.5 font-medium">Active</th>
-            <th className="py-1.5 font-medium" />
-          </tr>
-        </thead>
-        <tbody>
-          {initial.map((c) =>
-            editingId === c.id ? (
-              <tr key={c.id} className="border-b">
-                <td colSpan={4} className="py-2">
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleUpdate(c.id, new FormData(e.currentTarget));
-                    }}
-                    className="grid gap-2 md:grid-cols-4"
-                  >
-                    <Input name="name" defaultValue={c.name} required />
-                    <select name="kind" className={selectClass} defaultValue={c.kind}>
-                      <option value="credit">credit</option>
-                      <option value="debit">debit</option>
-                      <option value="other">other</option>
-                    </select>
-                    <label className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        name="isActive"
-                        defaultChecked={c.isActive}
-                      />
-                      <span>Active</span>
-                    </label>
-                    <div className="flex gap-2">
-                      <Button type="submit" size="sm" disabled={pending}>
-                        Save
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingId(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </td>
-              </tr>
-            ) : (
-              <tr key={c.id} className="border-b">
-                <td className="py-1.5">{c.name}</td>
-                <td className="py-1.5 text-muted-foreground">{c.kind}</td>
-                <td className="py-1.5">
+      <div className="border border-border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Name</TableHead>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Kind</TableHead>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Status</TableHead>
+              <TableHead className="text-right text-[10px] uppercase tracking-[0.18em]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {initial.map((c) => (
+              <TableRow key={c.id}>
+                <TableCell className="font-medium">{c.name}</TableCell>
+                <TableCell className="text-muted-foreground uppercase tracking-wider text-[10px]">
+                  {c.kind}
+                </TableCell>
+                <TableCell>
                   <Badge
                     variant={c.isActive ? "secondary" : "outline"}
-                    className="text-[10px]"
+                    className="text-[10px] uppercase tracking-wider"
                   >
                     {c.isActive ? "active" : "inactive"}
                   </Badge>
-                </td>
-                <td className="py-1.5 text-right">
-                  <Button size="sm" variant="ghost" onClick={() => setEditingId(c.id)}>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button size="xs" variant="ghost" onClick={() => openEdit(c)}>
                     Edit
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDelete(c.id)}>
+                  <Button size="xs" variant="ghost" onClick={() => handleDelete(c.id)}>
                     Delete
                   </Button>
-                </td>
-              </tr>
-            ),
-          )}
-          {initial.length === 0 && (
-            <tr>
-              <td colSpan={4} className="py-4 text-center text-muted-foreground">
-                No card types yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+                </TableCell>
+              </TableRow>
+            ))}
+            {initial.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={4} className="py-8 text-center text-muted-foreground">
+                  No card types yet.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={editId !== null} onOpenChange={(o) => !o && setEditId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit card type</DialogTitle>
+          </DialogHeader>
+          <CardTypeForm state={editState} onChange={setEditState} />
+          {error && <p className="text-[11px] text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditId(null)}>
+              Cancel
+            </Button>
+            <Button onClick={submitEdit} disabled={pending}>
+              {pending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

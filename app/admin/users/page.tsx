@@ -19,10 +19,11 @@ export default async function AdminUsersPage() {
     .from(users)
     .orderBy(asc(users.createdAt));
   return (
-    <div className="space-y-4">
-      <header>
-        <h1 className="text-base font-semibold">Users</h1>
-        <p className="text-xs text-muted-foreground">
+    <div className="space-y-6">
+      <header className="space-y-2">
+        <div className="section-label">№ 06 / Super admin</div>
+        <h1 className="text-2xl font-semibold tracking-tight">Users</h1>
+        <p className="max-w-2xl text-xs text-muted-foreground">
           Promote or demote any user. You cannot demote yourself.
         </p>
       </header>

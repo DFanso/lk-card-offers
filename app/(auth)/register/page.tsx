@@ -44,19 +44,45 @@ export default function RegisterPage() {
   }
 
   return (
-    <div className="mx-auto max-w-sm space-y-6 py-8">
-      <h1 className="text-base font-semibold">Create your account</h1>
-      <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+    <div className="mx-auto max-w-sm space-y-8 py-12">
+      <header className="space-y-2 text-center">
+        <div className="section-label justify-center">Access</div>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Create account
+        </h1>
+        <p className="text-xs text-muted-foreground">
+          Submit offers and track approvals.
+        </p>
+      </header>
+      <form
+        onSubmit={handleSubmit}
+        className="space-y-4 border border-border bg-card p-6"
+      >
         <div>
-          <Label htmlFor="name">Name</Label>
+          <Label
+            htmlFor="name"
+            className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+          >
+            Name
+          </Label>
           <Input id="name" name="name" required minLength={2} />
         </div>
         <div>
-          <Label htmlFor="email">Email</Label>
+          <Label
+            htmlFor="email"
+            className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+          >
+            Email
+          </Label>
           <Input id="email" name="email" type="email" required />
         </div>
         <div>
-          <Label htmlFor="password">Password</Label>
+          <Label
+            htmlFor="password"
+            className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground"
+          >
+            Password
+          </Label>
           <Input
             id="password"
             name="password"
@@ -64,15 +90,30 @@ export default function RegisterPage() {
             required
             minLength={6}
           />
+          <p className="mt-1 text-[10px] text-muted-foreground">
+            Six characters minimum.
+          </p>
         </div>
-        {error && <p className="text-destructive">{error}</p>}
-        <Button type="submit" disabled={pending} className="w-full">
-          {pending ? "Creating…" : "Create account"}
+        {error && (
+          <div className="border border-destructive/40 bg-destructive/5 px-3 py-2 text-[11px] text-destructive">
+            {error}
+          </div>
+        )}
+        <Button
+          type="submit"
+          disabled={pending}
+          className="w-full"
+          size="lg"
+        >
+          {pending ? "Creating…" : "Create account →"}
         </Button>
       </form>
-      <p className="text-xs text-muted-foreground">
+      <p className="text-center text-[11px] text-muted-foreground">
         Already have an account?{" "}
-        <Link href="/login" className="underline">
+        <Link
+          href="/login"
+          className="text-foreground underline-offset-4 hover:underline"
+        >
           Sign in
         </Link>
       </p>

@@ -3,6 +3,7 @@ import { listOffers } from "@/lib/queries-server/offers";
 import { OfferCard } from "@/components/site/offer-card";
 import { OfferFilters } from "@/components/site/offer-filters";
 import { Disclaimer } from "@/components/site/disclaimer";
+import { Button } from "@/components/ui/button";
 
 export const dynamic = "force-dynamic";
 
@@ -17,6 +18,7 @@ export default async function OffersPage({
   const categoryId = typeof sp.category === "string" ? sp.category : undefined;
   const q = typeof sp.q === "string" ? sp.q : undefined;
   const page = Number(typeof sp.page === "string" ? sp.page : "1") || 1;
+  const pageSize = 12;
 
   const { items, total } = await listOffers({
     bankIds: bankIds.length ? bankIds : undefined,
@@ -24,10 +26,10 @@ export default async function OffersPage({
     categoryId,
     q,
     page,
-    pageSize: 12,
+    pageSize,
   });
 
-  const totalPages = Math.max(1, Math.ceil(total / 12));
+  const totalPages = Math.max(1, Math.ceil(total / pageSize));
 
   const buildPageHref = (p: number) => {
     const params = new URLSearchParams();
@@ -39,54 +41,91 @@ export default async function OffersPage({
     return `/offers?${params.toString()}`;
   };
 
+  const offset = (page - 1) * pageSize;
+
   return (
-    <div className="grid gap-6 md:grid-cols-[200px_1fr]">
-      <OfferFilters />
-      <div className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-base font-semibold">All offers</h1>
-          <span className="text-xs text-muted-foreground">
-            {total} result{total === 1 ? "" : "s"}
-          </span>
+    <div className="space-y-6">
+      <header className="flex items-end justify-between border-b border-border pb-4">
+        <div>
+          <div className="section-label mb-2">Catalog</div>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            All offers
+          </h1>
         </div>
-        {items.length === 0 ? (
-          <div className="rounded border border-dashed p-8 text-center text-xs text-muted-foreground">
-            No offers match your filters.
-            <br />
-            <Link href="/offers" className="underline">
-              Reset filters
-            </Link>
+        <div className="text-right text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <div className="num text-foreground text-base font-medium">
+            {total.toString().padStart(3, "0")}
           </div>
-        ) : (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {items.map((offer) => (
-              <OfferCard key={offer.id} offer={offer} />
-            ))}
-          </div>
-        )}
+          <div>results</div>
+        </div>
+      </header>
 
-        {totalPages > 1 && (
-          <div className="flex items-center justify-center gap-2 pt-4 text-xs">
-            {Array.from({ length: totalPages }).map((_, i) => {
-              const p = i + 1;
-              return (
-                <Link
-                  key={p}
-                  href={buildPageHref(p)}
-                  className={
-                    p === page
-                      ? "rounded border bg-muted px-2 py-1"
-                      : "rounded border px-2 py-1 text-muted-foreground hover:text-foreground"
-                  }
-                >
-                  {p}
-                </Link>
-              );
-            })}
-          </div>
-        )}
+      <div className="grid gap-6 lg:grid-cols-[240px_1fr]">
+        <OfferFilters />
+        <div className="space-y-6">
+          {items.length === 0 ? (
+            <div className="border border-dashed border-border bg-muted/20 p-12 text-center">
+              <p className="text-xs text-muted-foreground">
+                No offers match your filters.
+              </p>
+              <Link
+                href="/offers"
+                className="mt-3 inline-block text-[10px] uppercase tracking-[0.22em] underline"
+              >
+                Reset filters →
+              </Link>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                <span>
+                  Showing{" "}
+                  <span className="num text-foreground">
+                    {(offset + 1).toString().padStart(3, "0")}–
+                    {Math.min(offset + pageSize, total)
+                      .toString()
+                      .padStart(3, "0")}
+                  </span>{" "}
+                  of <span className="num text-foreground">{total}</span>
+                </span>
+                <span className="num">
+                  Page {page} / {totalPages}
+                </span>
+              </div>
+              <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+                {items.map((offer, i) => (
+                  <OfferCard
+                    key={offer.id}
+                    offer={offer}
+                    index={offset + i + 1}
+                  />
+                ))}
+              </div>
+            </>
+          )}
 
-        <Disclaimer />
+          {totalPages > 1 && (
+            <div className="flex items-center justify-center gap-2 border-t border-border pt-6">
+              {Array.from({ length: totalPages }).map((_, i) => {
+                const p = i + 1;
+                const isCurrent = p === page;
+                return (
+                  <Link key={p} href={buildPageHref(p)}>
+                    <Button
+                      variant={isCurrent ? "default" : "outline"}
+                      size="sm"
+                      className="num min-w-8"
+                    >
+                      {p.toString().padStart(2, "0")}
+                    </Button>
+                  </Link>
+                );
+              })}
+            </div>
+          )}
+
+          <Disclaimer />
+        </div>
       </div>
     </div>
   );

@@ -6,6 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   createMerchant,
   deleteMerchant,
@@ -13,47 +30,126 @@ import {
 } from "@/lib/actions/master";
 import type { Merchant } from "@/db/schema";
 
+type FormState = {
+  name: string;
+  logoUrl: string;
+  contact: string;
+  locationSummary: string;
+  isActive: boolean;
+};
+
+const empty: FormState = {
+  name: "",
+  logoUrl: "",
+  contact: "",
+  locationSummary: "",
+  isActive: true,
+};
+
+function MerchantForm({
+  state,
+  onChange,
+}: {
+  state: FormState;
+  onChange: (next: FormState) => void;
+}) {
+  return (
+    <div className="space-y-3">
+      <div>
+        <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Name</Label>
+        <Input
+          value={state.name}
+          onChange={(e) => onChange({ ...state, name: e.target.value })}
+          required
+        />
+      </div>
+      <div>
+        <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Location summary</Label>
+        <Input
+          value={state.locationSummary}
+          onChange={(e) =>
+            onChange({ ...state, locationSummary: e.target.value })
+          }
+          placeholder="e.g. Colombo, Galle, Island-wide"
+        />
+      </div>
+      <div>
+        <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Contact</Label>
+        <Input
+          value={state.contact}
+          onChange={(e) => onChange({ ...state, contact: e.target.value })}
+        />
+      </div>
+      <div>
+        <Label className="text-[11px] uppercase tracking-[0.18em] text-muted-foreground">Logo URL</Label>
+        <Input
+          type="url"
+          value={state.logoUrl}
+          onChange={(e) => onChange({ ...state, logoUrl: e.target.value })}
+        />
+      </div>
+      <label className="flex items-center gap-2 text-xs">
+        <Checkbox
+          checked={state.isActive}
+          onCheckedChange={(v) => onChange({ ...state, isActive: !!v })}
+        />
+        <span>Active</span>
+      </label>
+    </div>
+  );
+}
+
 export function MerchantsClient({ initial }: { initial: Merchant[] }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [createOpen, setCreateOpen] = useState(false);
+  const [createState, setCreateState] = useState<FormState>(empty);
+  const [editId, setEditId] = useState<string | null>(null);
+  const [editState, setEditState] = useState<FormState>(empty);
 
-  function handleCreate(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
+  function openEdit(m: Merchant) {
+    setEditId(m.id);
+    setEditState({
+      name: m.name,
+      logoUrl: m.logoUrl ?? "",
+      contact: m.contact ?? "",
+      locationSummary: m.locationSummary ?? "",
+      isActive: m.isActive,
+    });
+  }
+
+  function submitCreate() {
     setError(null);
-    const fd = new FormData(e.currentTarget);
-    const input = {
-      name: String(fd.get("name") ?? ""),
-      logoUrl: (fd.get("logoUrl") as string) || null,
-      contact: (fd.get("contact") as string) || null,
-      locationSummary: (fd.get("locationSummary") as string) || null,
-      isActive: true,
-    };
-    const form = e.currentTarget;
     startTransition(async () => {
-      const result = await createMerchant(input);
+      const result = await createMerchant({
+        ...createState,
+        logoUrl: createState.logoUrl || null,
+        contact: createState.contact || null,
+        locationSummary: createState.locationSummary || null,
+      });
       if (!result.ok) setError(result.error);
       else {
-        form.reset();
+        setCreateState(empty);
+        setCreateOpen(false);
         router.refresh();
       }
     });
   }
 
-  function handleUpdate(id: string, fd: FormData) {
-    const input = {
-      name: String(fd.get("name") ?? ""),
-      logoUrl: (fd.get("logoUrl") as string) || null,
-      contact: (fd.get("contact") as string) || null,
-      locationSummary: (fd.get("locationSummary") as string) || null,
-      isActive: fd.get("isActive") === "on",
-    };
+  function submitEdit() {
+    if (!editId) return;
+    setError(null);
     startTransition(async () => {
-      const result = await updateMerchant(id, input);
+      const result = await updateMerchant(editId, {
+        ...editState,
+        logoUrl: editState.logoUrl || null,
+        contact: editState.contact || null,
+        locationSummary: editState.locationSummary || null,
+      });
       if (!result.ok) setError(result.error);
       else {
-        setEditingId(null);
+        setEditId(null);
         router.refresh();
       }
     });
@@ -69,135 +165,94 @@ export function MerchantsClient({ initial }: { initial: Merchant[] }) {
   }
 
   return (
-    <div className="space-y-6 text-xs">
-      <form
-        onSubmit={handleCreate}
-        className="grid gap-2 rounded border p-3 md:grid-cols-4"
-      >
-        <div>
-          <Label htmlFor="name">Name</Label>
-          <Input id="name" name="name" required />
+    <div className="space-y-4">
+      <div className="flex items-center justify-between">
+        <div className="ticker">
+          {initial.length.toString().padStart(2, "0")} merchants
         </div>
-        <div>
-          <Label htmlFor="contact">Contact</Label>
-          <Input id="contact" name="contact" />
-        </div>
-        <div className="md:col-span-2">
-          <Label htmlFor="locationSummary">Location summary</Label>
-          <Input id="locationSummary" name="locationSummary" />
-        </div>
-        <div className="md:col-span-3">
-          <Label htmlFor="logoUrl">Logo URL</Label>
-          <Input id="logoUrl" name="logoUrl" type="url" />
-        </div>
-        <div className="flex items-end">
-          <Button type="submit" size="sm" disabled={pending}>
-            Add merchant
-          </Button>
-        </div>
-      </form>
+        <Dialog open={createOpen} onOpenChange={setCreateOpen}>
+          <DialogTrigger render={<Button size="sm">+ New merchant</Button>} />
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Add merchant</DialogTitle>
+            </DialogHeader>
+            <MerchantForm state={createState} onChange={setCreateState} />
+            {error && <p className="text-[11px] text-destructive">{error}</p>}
+            <DialogFooter>
+              <Button variant="ghost" onClick={() => setCreateOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={submitCreate} disabled={pending}>
+                {pending ? "Saving…" : "Add"}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      </div>
 
-      {error && <p className="text-destructive">{error}</p>}
-
-      <table className="w-full border-collapse text-left">
-        <thead className="border-b">
-          <tr>
-            <th className="py-1.5 font-medium">Name</th>
-            <th className="py-1.5 font-medium">Location</th>
-            <th className="py-1.5 font-medium">Contact</th>
-            <th className="py-1.5 font-medium">Active</th>
-            <th className="py-1.5 font-medium" />
-          </tr>
-        </thead>
-        <tbody>
-          {initial.map((m) =>
-            editingId === m.id ? (
-              <tr key={m.id} className="border-b">
-                <td colSpan={5} className="py-2">
-                  <form
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      handleUpdate(m.id, new FormData(e.currentTarget));
-                    }}
-                    className="grid gap-2 md:grid-cols-5"
-                  >
-                    <Input name="name" defaultValue={m.name} required />
-                    <Input
-                      name="locationSummary"
-                      defaultValue={m.locationSummary ?? ""}
-                      placeholder="location"
-                    />
-                    <Input
-                      name="contact"
-                      defaultValue={m.contact ?? ""}
-                      placeholder="contact"
-                    />
-                    <Input
-                      name="logoUrl"
-                      defaultValue={m.logoUrl ?? ""}
-                      placeholder="logo url"
-                    />
-                    <div className="flex items-center gap-2">
-                      <label className="flex items-center gap-2">
-                        <input
-                          type="checkbox"
-                          name="isActive"
-                          defaultChecked={m.isActive}
-                        />
-                        <span>Active</span>
-                      </label>
-                      <Button type="submit" size="sm" disabled={pending}>
-                        Save
-                      </Button>
-                      <Button
-                        type="button"
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => setEditingId(null)}
-                      >
-                        Cancel
-                      </Button>
-                    </div>
-                  </form>
-                </td>
-              </tr>
-            ) : (
-              <tr key={m.id} className="border-b">
-                <td className="py-1.5">{m.name}</td>
-                <td className="py-1.5 text-muted-foreground">
-                  {m.locationSummary ?? "—"}
-                </td>
-                <td className="py-1.5 text-muted-foreground">
-                  {m.contact ?? "—"}
-                </td>
-                <td className="py-1.5">
+      <div className="border border-border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Name</TableHead>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Location</TableHead>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Contact</TableHead>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Status</TableHead>
+              <TableHead className="text-right text-[10px] uppercase tracking-[0.18em]">Actions</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {initial.map((m) => (
+              <TableRow key={m.id}>
+                <TableCell className="font-medium">{m.name}</TableCell>
+                <TableCell className="text-muted-foreground">{m.locationSummary ?? "—"}</TableCell>
+                <TableCell className="text-muted-foreground">{m.contact ?? "—"}</TableCell>
+                <TableCell>
                   <Badge
                     variant={m.isActive ? "secondary" : "outline"}
-                    className="text-[10px]"
+                    className="text-[10px] uppercase tracking-wider"
                   >
                     {m.isActive ? "active" : "inactive"}
                   </Badge>
-                </td>
-                <td className="py-1.5 text-right">
-                  <Button size="sm" variant="ghost" onClick={() => setEditingId(m.id)}>
+                </TableCell>
+                <TableCell className="text-right">
+                  <Button size="xs" variant="ghost" onClick={() => openEdit(m)}>
                     Edit
                   </Button>
-                  <Button size="sm" variant="ghost" onClick={() => handleDelete(m.id)}>
+                  <Button size="xs" variant="ghost" onClick={() => handleDelete(m.id)}>
                     Delete
                   </Button>
-                </td>
-              </tr>
-            ),
-          )}
-          {initial.length === 0 && (
-            <tr>
-              <td colSpan={5} className="py-4 text-center text-muted-foreground">
-                No merchants yet.
-              </td>
-            </tr>
-          )}
-        </tbody>
-      </table>
+                </TableCell>
+              </TableRow>
+            ))}
+            {initial.length === 0 && (
+              <TableRow>
+                <TableCell colSpan={5} className="py-8 text-center text-muted-foreground">
+                  No merchants yet.
+                </TableCell>
+              </TableRow>
+            )}
+          </TableBody>
+        </Table>
+      </div>
+
+      <Dialog open={editId !== null} onOpenChange={(o) => !o && setEditId(null)}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit merchant</DialogTitle>
+          </DialogHeader>
+          <MerchantForm state={editState} onChange={setEditState} />
+          {error && <p className="text-[11px] text-destructive">{error}</p>}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setEditId(null)}>
+              Cancel
+            </Button>
+            <Button onClick={submitEdit} disabled={pending}>
+              {pending ? "Saving…" : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

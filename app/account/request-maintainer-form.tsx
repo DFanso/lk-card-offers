@@ -28,16 +28,23 @@ export function RequestMaintainerForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-2 text-xs">
+    <form
+      onSubmit={handleSubmit}
+      className="space-y-3 border border-border bg-card p-4 text-xs"
+    >
       <Textarea
         name="note"
-        rows={2}
+        rows={3}
         placeholder="Tell admins why you'd like to be a maintainer (optional)"
       />
-      {error && <p className="text-destructive">{error}</p>}
-      <Button type="submit" size="sm" disabled={pending}>
-        {pending ? "Submitting…" : "Request access"}
-      </Button>
+      {error && (
+        <p className="text-[11px] text-destructive">{error}</p>
+      )}
+      <div className="flex justify-end">
+        <Button type="submit" size="sm" disabled={pending}>
+          {pending ? "Submitting…" : "Request access →"}
+        </Button>
+      </div>
     </form>
   );
 }

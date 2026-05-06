@@ -1,79 +1,95 @@
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { PublicOfferListItem } from "@/lib/queries-server/offers";
 
-function formatDateRange(start: string, end: string) {
-  const fmt = (d: string) =>
-    new Date(d).toLocaleDateString("en-LK", {
-      day: "numeric",
-      month: "short",
-      year: "numeric",
-    });
-  return `${fmt(start)} – ${fmt(end)}`;
+function formatDateShort(d: string) {
+  return new Date(d)
+    .toLocaleDateString("en-LK", { day: "2-digit", month: "short" })
+    .toUpperCase();
 }
 
-export function OfferCard({ offer }: { offer: PublicOfferListItem }) {
+function daysLeft(end: string) {
+  const ms = new Date(end).getTime() - Date.now();
+  const days = Math.ceil(ms / 86400000);
+  return days;
+}
+
+export function OfferCard({
+  offer,
+  index,
+}: {
+  offer: PublicOfferListItem;
+  index?: number;
+}) {
+  const remaining = daysLeft(offer.endDate);
+  const id = (index ?? 0).toString().padStart(3, "0");
+
   return (
-    <Card className="h-full overflow-hidden">
+    <article className="group relative flex h-full flex-col border border-border bg-card transition-colors hover:border-foreground/40">
+      <div className="absolute -top-px left-0 right-0 flex items-center justify-between px-3 py-1 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+        <span className="bg-card pr-2 num">№ {id}</span>
+        <span className="bg-card pl-2">
+          {offer.category?.name ?? "Uncategorized"}
+        </span>
+      </div>
+
       {offer.imageUrl && (
-        <Link href={`/offers/${offer.id}`} className="block">
+        <Link
+          href={`/offers/${offer.id}`}
+          className="relative block border-b border-border"
+        >
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={offer.imageUrl}
             alt={offer.title}
-            className="aspect-[16/9] w-full object-cover"
+            className="aspect-[16/9] w-full object-cover transition-transform duration-300 group-hover:scale-[1.01]"
             loading="lazy"
           />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
         </Link>
       )}
-      <CardHeader>
-        <div className="flex items-start justify-between gap-2">
-          <CardTitle className="text-sm">
-            <Link href={`/offers/${offer.id}`} className="hover:underline">
-              {offer.title}
-            </Link>
-          </CardTitle>
-          {offer.category && (
+
+      <div className="flex flex-1 flex-col gap-3 p-4 pt-6">
+        {offer.merchant && (
+          <div className="section-label">{offer.merchant.name}</div>
+        )}
+        <Link href={`/offers/${offer.id}`} className="block">
+          <h3 className="text-base font-semibold leading-snug tracking-tight transition-colors group-hover:text-primary">
+            {offer.title}
+          </h3>
+        </Link>
+        <p className="line-clamp-2 text-xs leading-relaxed text-muted-foreground">
+          {offer.description}
+        </p>
+
+        <div className="flex flex-wrap gap-1">
+          {offer.banks.slice(0, 3).map((b) => (
+            <Badge key={b.id} variant="secondary" className="text-[10px]">
+              {b.name.split(" ")[0]}
+            </Badge>
+          ))}
+          {offer.banks.length > 3 && (
             <Badge variant="outline" className="text-[10px]">
-              {offer.category.name}
+              +{offer.banks.length - 3}
             </Badge>
           )}
         </div>
-        {offer.merchant && (
-          <p className="text-xs text-muted-foreground">{offer.merchant.name}</p>
-        )}
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <p className="line-clamp-3 text-xs text-muted-foreground">
-          {offer.description}
-        </p>
-        <div className="flex flex-wrap gap-1">
-          {offer.banks.map((b) => (
-            <Badge key={b.id} variant="secondary" className="text-[10px]">
-              {b.name}
-            </Badge>
-          ))}
+      </div>
+
+      <div className="mt-auto border-t border-border bg-muted/30 px-4 py-2.5">
+        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+          <span className="num">
+            {formatDateShort(offer.startDate)} → {formatDateShort(offer.endDate)}
+          </span>
+          {remaining > 0 ? (
+            <span className="num text-foreground">
+              {remaining}d left
+            </span>
+          ) : (
+            <span className="text-destructive">expired</span>
+          )}
         </div>
-        <div className="flex flex-wrap gap-1">
-          {offer.cardTypes.map((c) => (
-            <Badge key={c.id} variant="outline" className="text-[10px]">
-              {c.name}
-            </Badge>
-          ))}
-        </div>
-        <div className="flex items-center justify-between border-t pt-2 text-[11px] text-muted-foreground">
-          <span>{formatDateRange(offer.startDate, offer.endDate)}</span>
-          <a
-            href={offer.sourceUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="hover:text-foreground"
-          >
-            Source ↗
-          </a>
-        </div>
-      </CardContent>
-    </Card>
+      </div>
+    </article>
   );
 }

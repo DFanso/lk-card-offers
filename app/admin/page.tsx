@@ -10,7 +10,6 @@ import {
   users,
 } from "@/db/schema";
 import { requireRole, roleAtLeast } from "@/lib/rbac";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 export const dynamic = "force-dynamic";
 
@@ -38,43 +37,61 @@ export default async function AdminDashboard() {
     .from(users);
 
   const tiles = [
-    { label: "Banks", count: bankCount.count, href: "/admin/banks" },
-    { label: "Card types", count: cardTypeCount.count, href: "/admin/card-types" },
-    { label: "Categories", count: categoryCount.count, href: "/admin/categories" },
-    { label: "Merchants", count: merchantCount.count, href: "/admin/merchants" },
+    { code: "01", label: "Banks", count: bankCount.count, href: "/admin/banks" },
+    { code: "02", label: "Card types", count: cardTypeCount.count, href: "/admin/card-types" },
+    { code: "03", label: "Categories", count: categoryCount.count, href: "/admin/categories" },
+    { code: "04", label: "Merchants", count: merchantCount.count, href: "/admin/merchants" },
     {
+      code: "05",
       label: "Maintainer requests",
       count: pendingRequests.count,
       href: "/admin/maintainer-requests",
     },
   ];
   if (roleAtLeast(session.user.role, "super_admin")) {
-    tiles.push({ label: "Users", count: userCount.count, href: "/admin/users" });
+    tiles.push({
+      code: "06",
+      label: "Users",
+      count: userCount.count,
+      href: "/admin/users",
+    });
   }
 
   return (
-    <div className="space-y-6">
-      <header>
-        <h1 className="text-base font-semibold">Admin dashboard</h1>
-        <p className="text-xs text-muted-foreground">
-          Manage master data and access control.
+    <div className="space-y-8">
+      <header className="space-y-2">
+        <div className="section-label">Administration</div>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          Master data & access
+        </h1>
+        <p className="max-w-xl text-xs text-muted-foreground">
+          Curate the canonical taxonomy of banks, card types, merchants, and
+          categories. Approve maintainer requests and manage roles.
         </p>
       </header>
-      <div className="grid gap-4 sm:grid-cols-2 md:grid-cols-3">
+
+      <div className="grid gap-px border border-border bg-border md:grid-cols-2 lg:grid-cols-3">
         {tiles.map((t) => (
-          <Card key={t.href}>
-            <CardHeader>
-              <CardTitle className="text-xs text-muted-foreground">
-                {t.label}
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-2xl font-semibold">{t.count}</p>
-              <Link href={t.href} className="mt-1 inline-block text-xs underline">
+          <Link
+            key={t.href}
+            href={t.href}
+            className="group bg-card p-5 transition-colors hover:bg-muted/40"
+          >
+            <div className="flex items-baseline justify-between">
+              <span className="num text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                № {t.code}
+              </span>
+              <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground transition-colors group-hover:text-foreground">
                 Manage →
-              </Link>
-            </CardContent>
-          </Card>
+              </span>
+            </div>
+            <div className="mt-4 flex items-baseline gap-2">
+              <span className="num text-4xl font-semibold tracking-tight">
+                {t.count.toString().padStart(2, "0")}
+              </span>
+              <span className="text-xs text-muted-foreground">{t.label}</span>
+            </div>
+          </Link>
         ))}
       </div>
     </div>

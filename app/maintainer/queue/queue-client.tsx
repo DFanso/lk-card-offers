@@ -5,13 +5,31 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
+import { Skeleton } from "@/components/ui/skeleton";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import {
   approveSubmission,
   rejectSubmission,
 } from "@/lib/actions/submissions";
-import { useMaintainerQueue } from "@/lib/queries/admin";
+import { useMaintainerQueue, type QueueItem } from "@/lib/queries/admin";
 import { useBanks, useCardTypes } from "@/lib/queries/master";
 import type { OfferInput } from "@/lib/validation/offer";
+
+function formatDate(d: string) {
+  return new Date(d)
+    .toLocaleDateString("en-LK", {
+      day: "2-digit",
+      month: "short",
+      year: "numeric",
+    })
+    .toUpperCase();
+}
 
 export function QueueClient() {
   const queue = useMaintainerQueue();
@@ -22,6 +40,10 @@ export function QueueClient() {
   const [openId, setOpenId] = useState<string | null>(null);
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  const items = queue.data?.items ?? [];
+  const open = items.find((i) => i.id === openId) ?? null;
+  const openPayload = open ? (open.payload as Partial<OfferInput>) : null;
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ["maintainer-queue"] });
@@ -34,19 +56,14 @@ export function QueueClient() {
     return cardTypes.data?.items.filter((c) => ids.includes(c.id)).map((c) => c.name) ?? [];
   }
 
-  if (queue.isLoading) return <p className="text-xs">Loading…</p>;
-  if (queue.error) return <p className="text-xs text-destructive">Failed to load.</p>;
-  const items = queue.data?.items ?? [];
-  if (items.length === 0)
-    return <p className="text-xs text-muted-foreground">No pending submissions.</p>;
-
-  function decide(action: "approve" | "reject", id: string) {
+  function decide(action: "approve" | "reject") {
+    if (!openId) return;
     setError(null);
     startTransition(async () => {
       const result =
         action === "approve"
-          ? await approveSubmission(id, note || undefined)
-          : await rejectSubmission(id, note || undefined);
+          ? await approveSubmission(openId, note || undefined)
+          : await rejectSubmission(openId, note || undefined);
       if (!result.ok) {
         setError(result.error);
         return;
@@ -57,129 +74,193 @@ export function QueueClient() {
     });
   }
 
+  if (queue.isLoading) {
+    return (
+      <div className="space-y-3">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <Skeleton key={i} className="h-28 w-full" />
+        ))}
+      </div>
+    );
+  }
+  if (queue.error)
+    return (
+      <div className="border border-destructive/40 bg-destructive/5 p-4 text-xs text-destructive">
+        Failed to load queue.
+      </div>
+    );
+  if (items.length === 0)
+    return (
+      <div className="border border-dashed border-border bg-muted/20 p-8 text-center text-xs text-muted-foreground">
+        Queue is clear. Nothing pending review.
+      </div>
+    );
+
   return (
-    <ul className="space-y-3">
-      {items.map((item) => {
-        const payload = item.payload as Partial<OfferInput>;
-        const isOpen = openId === item.id;
-        return (
-          <li key={item.id} className="rounded border p-3 text-xs">
-            <div className="flex items-start justify-between gap-2">
+    <>
+      <div className="grid gap-3">
+        {items.map((item, i) => (
+          <QueueRow
+            key={item.id}
+            item={item}
+            index={i + 1}
+            bankNames={bankNames}
+            cardTypeNames={cardTypeNames}
+            onReview={() => {
+              setOpenId(item.id);
+              setNote("");
+              setError(null);
+            }}
+          />
+        ))}
+      </div>
+
+      <Dialog open={open !== null} onOpenChange={(o) => !o && setOpenId(null)}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Review submission</DialogTitle>
+          </DialogHeader>
+          {openPayload && (
+            <div className="space-y-3 text-xs">
               <div>
-                <p className="font-medium">{payload.title ?? "Untitled"}</p>
-                <p className="text-muted-foreground">
-                  Submitted by {item.submittedByName ?? "—"} ·{" "}
-                  {new Date(item.createdAt).toLocaleString()}
+                <p className="font-medium">{openPayload.title}</p>
+                <p className="mt-1 text-muted-foreground">
+                  {openPayload.description}
                 </p>
               </div>
-              <Badge variant="outline" className="text-[10px]">
-                {item.status}
-              </Badge>
-            </div>
-            <div className="mt-2 flex gap-3">
-              {payload.imageUrl && (
-                <a
-                  href={payload.imageUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="shrink-0"
-                >
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={payload.imageUrl}
-                    alt={payload.title ?? "Offer image"}
-                    className="h-24 w-32 rounded border object-cover"
-                    loading="lazy"
-                  />
-                </a>
-              )}
-              <p className="line-clamp-4 text-muted-foreground">
-                {payload.description}
-              </p>
-            </div>
-            {payload.newMerchantName && !payload.merchantId && (
-              <p className="mt-2 text-[11px] text-muted-foreground">
-                New merchant requested:{" "}
-                <span className="font-medium text-foreground">
-                  {payload.newMerchantName}
-                </span>
-              </p>
-            )}
-            <div className="mt-2 flex flex-wrap gap-1">
-              {bankNames(payload.bankIds ?? []).map((n) => (
-                <Badge key={n} variant="secondary" className="text-[10px]">
-                  {n}
-                </Badge>
-              ))}
-              {cardTypeNames(payload.cardTypeIds ?? []).map((n) => (
-                <Badge key={n} variant="outline" className="text-[10px]">
-                  {n}
-                </Badge>
-              ))}
-            </div>
-            <div className="mt-2 flex gap-2 text-muted-foreground">
-              <span>
-                Valid {payload.startDate} – {payload.endDate}
-              </span>
-              {payload.sourceUrl && (
-                <a
-                  href={payload.sourceUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="underline"
-                >
-                  source ↗
-                </a>
-              )}
-            </div>
-            {isOpen ? (
-              <div className="mt-3 space-y-2">
-                <Textarea
-                  rows={2}
-                  placeholder="Optional note for the submitter"
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
+              {openPayload.imageUrl && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={openPayload.imageUrl}
+                  alt={openPayload.title ?? ""}
+                  className="aspect-[16/9] w-full border border-border object-cover"
                 />
-                {error && <p className="text-destructive">{error}</p>}
-                <div className="flex gap-2">
-                  <Button
-                    size="sm"
-                    disabled={pending}
-                    onClick={() => decide("approve", item.id)}
-                  >
-                    Approve & publish
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="destructive"
-                    disabled={pending}
-                    onClick={() => decide("reject", item.id)}
-                  >
-                    Reject
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="ghost"
-                    onClick={() => {
-                      setOpenId(null);
-                      setNote("");
-                      setError(null);
-                    }}
-                  >
-                    Cancel
-                  </Button>
+              )}
+              {openPayload.newMerchantName && !openPayload.merchantId && (
+                <div className="border border-dashed border-border bg-muted/30 p-2">
+                  <span className="section-label">New merchant requested</span>
+                  <p className="mt-1 font-medium">
+                    {openPayload.newMerchantName}
+                  </p>
                 </div>
+              )}
+              <Textarea
+                rows={3}
+                placeholder="Optional review note"
+                value={note}
+                onChange={(e) => setNote(e.target.value)}
+              />
+              {error && (
+                <p className="text-[11px] text-destructive">{error}</p>
+              )}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setOpenId(null)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={pending}
+              onClick={() => decide("reject")}
+            >
+              Reject
+            </Button>
+            <Button disabled={pending} onClick={() => decide("approve")}>
+              Approve & publish
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </>
+  );
+}
+
+function QueueRow({
+  item,
+  index,
+  bankNames,
+  cardTypeNames,
+  onReview,
+}: {
+  item: QueueItem;
+  index: number;
+  bankNames: (ids: string[]) => string[];
+  cardTypeNames: (ids: string[]) => string[];
+  onReview: () => void;
+}) {
+  const payload = item.payload as Partial<OfferInput>;
+  return (
+    <article className="border border-border bg-card transition-colors hover:border-foreground/30">
+      <div className="flex items-stretch gap-0">
+        {payload.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={payload.imageUrl}
+            alt={payload.title ?? ""}
+            className="aspect-[4/3] w-40 shrink-0 border-r border-border object-cover"
+          />
+        ) : (
+          <div className="aspect-[4/3] w-40 shrink-0 border-r border-border bg-muted/40" />
+        )}
+        <div className="flex flex-1 flex-col p-4">
+          <div className="flex items-start justify-between gap-2">
+            <div className="min-w-0">
+              <div className="num text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                № {index.toString().padStart(3, "0")} ·{" "}
+                {new Date(item.createdAt).toLocaleString()}
               </div>
-            ) : (
-              <div className="mt-3">
-                <Button size="sm" variant="outline" onClick={() => setOpenId(item.id)}>
-                  Review
-                </Button>
-              </div>
-            )}
-          </li>
-        );
-      })}
-    </ul>
+              <h3 className="mt-1 truncate text-sm font-medium">
+                {payload.title ?? "Untitled"}
+              </h3>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                Submitted by {item.submittedByName ?? "—"}
+                {item.submittedByEmail && (
+                  <>
+                    {" · "}
+                    <span>{item.submittedByEmail}</span>
+                  </>
+                )}
+              </p>
+            </div>
+            <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
+              {item.status}
+            </Badge>
+          </div>
+          <p className="mt-2 line-clamp-2 text-xs text-muted-foreground">
+            {payload.description}
+          </p>
+          <div className="mt-3 flex flex-wrap gap-1">
+            {bankNames(payload.bankIds ?? []).map((n) => (
+              <Badge key={n} variant="secondary" className="text-[10px]">
+                {n.split(" ")[0]}
+              </Badge>
+            ))}
+            {cardTypeNames(payload.cardTypeIds ?? []).map((n) => (
+              <Badge key={n} variant="outline" className="text-[10px]">
+                {n}
+              </Badge>
+            ))}
+          </div>
+          {payload.newMerchantName && !payload.merchantId && (
+            <p className="mt-2 text-[11px] text-muted-foreground">
+              New merchant:{" "}
+              <span className="font-medium text-foreground">
+                {payload.newMerchantName}
+              </span>
+            </p>
+          )}
+          <div className="mt-auto flex items-end justify-between pt-3 text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
+            <span className="num">
+              {payload.startDate && formatDate(payload.startDate)} →{" "}
+              {payload.endDate && formatDate(payload.endDate)}
+            </span>
+            <Button size="sm" variant="outline" onClick={onReview}>
+              Review →
+            </Button>
+          </div>
+        </div>
+      </div>
+    </article>
   );
 }

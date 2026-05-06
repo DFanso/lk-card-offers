@@ -4,6 +4,7 @@ import { maintainerRequests, offerSubmissions } from "@/db/schema";
 import { requireSession } from "@/lib/rbac";
 import { RequestMaintainerForm } from "./request-maintainer-form";
 import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 
 export const dynamic = "force-dynamic";
 
@@ -25,17 +26,31 @@ export default async function AccountPage() {
   const pendingRequest = requests.find((r) => r.status === "pending");
 
   return (
-    <div className="space-y-8">
-      <header>
-        <h1 className="text-base font-semibold">Account</h1>
+    <div className="space-y-10">
+      <header className="space-y-2">
+        <div className="section-label">Account</div>
+        <h1 className="text-3xl font-semibold tracking-tight">
+          {session.user.name}
+        </h1>
         <p className="text-xs text-muted-foreground">
-          Signed in as {session.user.email} ·{" "}
-          <span className="font-medium">{session.user.role}</span>
+          {session.user.email} ·{" "}
+          <Badge
+            variant="outline"
+            className="ml-1 text-[10px] uppercase tracking-wider"
+          >
+            {session.user.role}
+          </Badge>
         </p>
       </header>
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium">Become a maintainer</h2>
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-sm font-medium">Become a maintainer</h2>
+          <span className="num text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            № 01
+          </span>
+        </div>
+        <Separator />
         {session.user.role !== "user" ? (
           <p className="text-xs text-muted-foreground">
             You already have elevated access.
@@ -48,38 +63,72 @@ export default async function AccountPage() {
           <RequestMaintainerForm />
         )}
         {requests.length > 0 && (
-          <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+          <ul className="space-y-1.5 pt-2 text-xs">
             {requests.map((r) => (
-              <li key={r.id} className="flex items-center gap-2">
-                <Badge variant="outline" className="text-[10px]">
+              <li
+                key={r.id}
+                className="flex items-center gap-3 border border-border bg-card px-3 py-2"
+              >
+                <Badge
+                  variant={
+                    r.status === "approved"
+                      ? "secondary"
+                      : r.status === "rejected"
+                      ? "destructive"
+                      : "outline"
+                  }
+                  className="text-[10px] uppercase tracking-wider"
+                >
                   {r.status}
                 </Badge>
-                <span>
-                  {new Date(r.createdAt).toLocaleString()} {r.note ? `– ${r.note}` : ""}
+                <span className="text-muted-foreground num">
+                  {new Date(r.createdAt).toLocaleString()}
                 </span>
+                {r.note && (
+                  <span className="text-muted-foreground italic">
+                    — {r.note}
+                  </span>
+                )}
               </li>
             ))}
           </ul>
         )}
       </section>
 
-      <section className="space-y-2">
-        <h2 className="text-sm font-medium">My submissions</h2>
+      <section className="space-y-3">
+        <div className="flex items-baseline justify-between">
+          <h2 className="text-sm font-medium">My submissions</h2>
+          <span className="num text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+            № 02 · {submissions.length.toString().padStart(2, "0")}
+          </span>
+        </div>
+        <Separator />
         {submissions.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             You have not submitted any offers yet.
           </p>
         ) : (
-          <ul className="space-y-1 text-xs">
+          <ul className="space-y-1.5">
             {submissions.map((s) => {
               const payload = s.payload as { title?: string };
               return (
                 <li
                   key={s.id}
-                  className="flex items-center justify-between rounded border px-2 py-1.5"
+                  className="flex items-center justify-between border border-border bg-card px-3 py-2 text-xs"
                 >
-                  <span className="truncate">{payload.title ?? "Untitled"}</span>
-                  <Badge variant="outline" className="text-[10px]">
+                  <span className="truncate font-medium">
+                    {payload.title ?? "Untitled"}
+                  </span>
+                  <Badge
+                    variant={
+                      s.status === "approved"
+                        ? "secondary"
+                        : s.status === "rejected"
+                        ? "destructive"
+                        : "outline"
+                    }
+                    className="ml-3 shrink-0 text-[10px] uppercase tracking-wider"
+                  >
                     {s.status}
                   </Badge>
                 </li>

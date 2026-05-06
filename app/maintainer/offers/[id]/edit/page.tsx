@@ -45,9 +45,12 @@ export default async function EditOfferPage({
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-4">
-      <header>
-        <h1 className="text-base font-semibold">Edit offer</h1>
+    <div className="mx-auto max-w-3xl space-y-6">
+      <header className="space-y-2">
+        <div className="section-label">Maintainer / Edit</div>
+        <h1 className="text-2xl font-semibold tracking-tight">
+          Edit offer
+        </h1>
       </header>
       <EditOfferForm offerId={offer.id} initial={initial} />
     </div>

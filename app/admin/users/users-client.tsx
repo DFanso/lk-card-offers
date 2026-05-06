@@ -3,6 +3,21 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import { setUserRole } from "@/lib/actions/users";
 import type { UserRoleValue } from "@/db/schema";
 
@@ -14,7 +29,12 @@ export type AdminUserRow = {
   createdAt: Date | string;
 };
 
-const ROLES: UserRoleValue[] = ["user", "maintainer", "admin", "super_admin"];
+const ROLES: { value: UserRoleValue; label: string }[] = [
+  { value: "user", label: "User" },
+  { value: "maintainer", label: "Maintainer" },
+  { value: "admin", label: "Admin" },
+  { value: "super_admin", label: "Super admin" },
+];
 
 export function UsersClient({
   initial,
@@ -37,58 +57,68 @@ export function UsersClient({
   }
 
   return (
-    <div className="space-y-3 text-xs">
-      {error && <p className="text-destructive">{error}</p>}
-      <table className="w-full border-collapse text-left">
-        <thead className="border-b">
-          <tr>
-            <th className="py-1.5 font-medium">Name</th>
-            <th className="py-1.5 font-medium">Email</th>
-            <th className="py-1.5 font-medium">Role</th>
-            <th className="py-1.5 font-medium">Joined</th>
-            <th className="py-1.5 font-medium">Change</th>
-          </tr>
-        </thead>
-        <tbody>
-          {initial.map((u) => (
-            <tr key={u.id} className="border-b">
-              <td className="py-1.5">
-                {u.name}
-                {u.id === currentUserId && (
-                  <Badge variant="outline" className="ml-2 text-[10px]">
-                    you
+    <div className="space-y-4">
+      {error && (
+        <div className="border border-destructive/40 bg-destructive/5 px-3 py-2 text-[11px] text-destructive">
+          {error}
+        </div>
+      )}
+      <div className="border border-border bg-card">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Name</TableHead>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Email</TableHead>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Current role</TableHead>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Joined</TableHead>
+              <TableHead className="text-[10px] uppercase tracking-[0.18em]">Change</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {initial.map((u) => (
+              <TableRow key={u.id}>
+                <TableCell className="font-medium">
+                  {u.name}
+                  {u.id === currentUserId && (
+                    <Badge variant="outline" className="ml-2 text-[10px] uppercase">
+                      you
+                    </Badge>
+                  )}
+                </TableCell>
+                <TableCell className="text-muted-foreground">{u.email}</TableCell>
+                <TableCell>
+                  <Badge variant="secondary" className="text-[10px] uppercase tracking-wider">
+                    {u.role}
                   </Badge>
-                )}
-              </td>
-              <td className="py-1.5 text-muted-foreground">{u.email}</td>
-              <td className="py-1.5">
-                <Badge variant="secondary" className="text-[10px]">
-                  {u.role}
-                </Badge>
-              </td>
-              <td className="py-1.5 text-muted-foreground">
-                {new Date(u.createdAt).toLocaleDateString()}
-              </td>
-              <td className="py-1.5">
-                <select
-                  className="h-7 rounded-none border bg-transparent px-2 text-xs"
-                  defaultValue={u.role}
-                  disabled={pending || u.id === currentUserId}
-                  onChange={(e) =>
-                    handleChange(u.id, e.target.value as UserRoleValue)
-                  }
-                >
-                  {ROLES.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                </TableCell>
+                <TableCell className="text-muted-foreground num">
+                  {new Date(u.createdAt).toLocaleDateString()}
+                </TableCell>
+                <TableCell>
+                  <Select
+                    value={u.role}
+                    onValueChange={(v) =>
+                      v && handleChange(u.id, v as UserRoleValue)
+                    }
+                    disabled={pending || u.id === currentUserId}
+                  >
+                    <SelectTrigger size="sm" className="w-32">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {ROLES.map((r) => (
+                        <SelectItem key={r.value} value={r.value}>
+                          {r.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
     </div>
   );
 }
