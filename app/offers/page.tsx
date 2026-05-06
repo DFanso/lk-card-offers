@@ -4,6 +4,7 @@ import { OfferCard } from "@/components/site/offer-card";
 import { OfferFilters } from "@/components/site/offer-filters";
 import { Disclaimer } from "@/components/site/disclaimer";
 import { Button } from "@/components/ui/button";
+import { Pagination } from "@/components/site/pagination";
 
 export const dynamic = "force-dynamic";
 
@@ -77,7 +78,7 @@ export default async function OffersPage({
             </div>
           ) : (
             <>
-              <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+              <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-1 text-[10px] uppercase tracking-[0.18em] text-muted-foreground sm:tracking-[0.22em]">
                 <span>
                   Showing{" "}
                   <span className="num text-foreground">
@@ -105,23 +106,11 @@ export default async function OffersPage({
           )}
 
           {totalPages > 1 && (
-            <div className="flex items-center justify-center gap-2 border-t border-border pt-6">
-              {Array.from({ length: totalPages }).map((_, i) => {
-                const p = i + 1;
-                const isCurrent = p === page;
-                return (
-                  <Link key={p} href={buildPageHref(p)}>
-                    <Button
-                      variant={isCurrent ? "default" : "outline"}
-                      size="sm"
-                      className="num min-w-8"
-                    >
-                      {p.toString().padStart(2, "0")}
-                    </Button>
-                  </Link>
-                );
-              })}
-            </div>
+            <Pagination
+              page={page}
+              totalPages={totalPages}
+              buildHref={buildPageHref}
+            />
           )}
 
           <Disclaimer />
