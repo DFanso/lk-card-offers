@@ -76,9 +76,35 @@ export function QueueClient() {
                 {item.status}
               </Badge>
             </div>
-            <p className="mt-2 line-clamp-3 text-muted-foreground">
-              {payload.description}
-            </p>
+            <div className="mt-2 flex gap-3">
+              {payload.imageUrl && (
+                <a
+                  href={payload.imageUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="shrink-0"
+                >
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={payload.imageUrl}
+                    alt={payload.title ?? "Offer image"}
+                    className="h-24 w-32 rounded border object-cover"
+                    loading="lazy"
+                  />
+                </a>
+              )}
+              <p className="line-clamp-4 text-muted-foreground">
+                {payload.description}
+              </p>
+            </div>
+            {payload.newMerchantName && !payload.merchantId && (
+              <p className="mt-2 text-[11px] text-muted-foreground">
+                New merchant requested:{" "}
+                <span className="font-medium text-foreground">
+                  {payload.newMerchantName}
+                </span>
+              </p>
+            )}
             <div className="mt-2 flex flex-wrap gap-1">
               {bankNames(payload.bankIds ?? []).map((n) => (
                 <Badge key={n} variant="secondary" className="text-[10px]">
