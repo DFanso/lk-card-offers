@@ -1,3 +1,6 @@
+import { mkdir, writeFile } from "node:fs/promises";
+import { dirname, extname, join } from "node:path";
+import { createHash } from "node:crypto";
 import { eq, inArray, sql } from "drizzle-orm";
 import { db } from "../db";
 import {
@@ -25,6 +28,7 @@ export function cleanMerchantName(raw: string): string {
   return raw
     .replace(/[‘’]/g, "'")
     .replace(/[“”]/g, '"')
+    .replace(/^\s*www\.?\s*/i, "")
     .replace(/\s*\([0-9]+\)\s*$/g, "")
     .replace(/\.(jpg|jpeg|png|webp|gif|svg)$/i, "")
     .replace(
@@ -37,6 +41,42 @@ export function cleanMerchantName(raw: string): string {
     .replace(/(^|[\s'])([a-z])/g, (_m, sep: string, ch: string) =>
       sep + ch.toUpperCase(),
     );
+}
+
+const MIME_TO_EXT: Record<string, string> = {
+  "image/jpeg": ".jpg",
+  "image/jpg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+  "image/gif": ".gif",
+};
+
+export async function downloadImage(
+  imageUrl: string,
+  publicSubdir: string,
+  referer?: string,
+): Promise<string | null> {
+  try {
+    const headers: Record<string, string> = { "user-agent": UA };
+    if (referer) headers.referer = referer;
+    const res = await fetch(imageUrl, { headers });
+    if (!res.ok) return null;
+    const contentType = (res.headers.get("content-type") ?? "")
+      .toLowerCase()
+      .split(";")[0]
+      .trim();
+    const fromUrl = extname(new URL(imageUrl).pathname).toLowerCase();
+    const ext = MIME_TO_EXT[contentType] ?? (fromUrl || ".jpg");
+    const hash = createHash("sha1").update(imageUrl).digest("hex").slice(0, 12);
+    const filename = `${hash}${ext}`;
+    const absPath = join(process.cwd(), "public", publicSubdir, filename);
+    await mkdir(dirname(absPath), { recursive: true });
+    const buf = Buffer.from(await res.arrayBuffer());
+    await writeFile(absPath, buf);
+    return `/${publicSubdir.replace(/\\/g, "/")}/${filename}`;
+  } catch {
+    return null;
+  }
 }
 
 export function isGarbageAlt(alt: string): boolean {
