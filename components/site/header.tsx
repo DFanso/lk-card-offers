@@ -19,7 +19,7 @@ export async function SiteHeader() {
 
   return (
     <header className="border-b border-border bg-background">
-      <div className="mx-auto flex h-7 w-full max-w-screen-2xl items-center justify-between gap-4 px-6 lg:px-10 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+      <div className="mx-auto flex h-7 w-full items-center justify-between gap-4 px-6 lg:px-10 2xl:px-14 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
         <div className="flex items-center gap-3">
           <span className="num">{stamp}</span>
           <span aria-hidden>·</span>
@@ -33,7 +33,7 @@ export async function SiteHeader() {
         </div>
       </div>
       <Separator />
-      <div className="mx-auto flex h-14 w-full max-w-screen-2xl items-center justify-between gap-4 px-6 lg:px-10">
+      <div className="mx-auto flex h-14 w-full items-center justify-between gap-4 px-6 lg:px-10 2xl:px-14">
         <Link href="/" className="group flex items-baseline gap-3">
           <span className="text-lg font-semibold tracking-[-0.01em] text-foreground">
             LK / Card Offers
