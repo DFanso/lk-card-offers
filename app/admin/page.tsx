@@ -7,6 +7,7 @@ import {
   categories,
   maintainerRequests,
   merchants,
+  offers,
   users,
 } from "@/db/schema";
 import { requireRole, roleAtLeast } from "@/lib/rbac";
@@ -35,6 +36,9 @@ export default async function AdminDashboard() {
   const [userCount] = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(users);
+  const [offerCount] = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(offers);
 
   const tiles = [
     { code: "01", label: "Banks", count: bankCount.count, href: "/admin/banks" },
@@ -47,10 +51,16 @@ export default async function AdminDashboard() {
       count: pendingRequests.count,
       href: "/admin/maintainer-requests",
     },
+    {
+      code: "06",
+      label: "Offers",
+      count: offerCount.count,
+      href: "/admin/offers",
+    },
   ];
   if (roleAtLeast(session.user.role, "super_admin")) {
     tiles.push({
-      code: "06",
+      code: "07",
       label: "Users",
       count: userCount.count,
       href: "/admin/users",
