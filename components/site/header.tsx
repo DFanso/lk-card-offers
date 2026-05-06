@@ -1,9 +1,11 @@
 import Link from "next/link";
 import { auth, signOut } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { roleAtLeast } from "@/lib/rbac";
+import { NavLinks, type NavItem } from "@/components/site/nav-links";
+import { MobileNav } from "@/components/site/mobile-nav";
+import { AccountMenu } from "@/components/site/account-menu";
 
 export async function SiteHeader() {
   const session = await auth();
@@ -17,8 +19,26 @@ export async function SiteHeader() {
     })
     .toUpperCase();
 
+  const navItems: NavItem[] = [
+    { href: "/offers", label: "Offers" },
+  ];
+  if (session?.user) {
+    navItems.push({ href: "/submit", label: "Submit" });
+  }
+  if (roleAtLeast(role, "maintainer")) {
+    navItems.push({ href: "/maintainer", label: "Maintainer" });
+  }
+  if (roleAtLeast(role, "admin")) {
+    navItems.push({ href: "/admin", label: "Admin" });
+  }
+
+  async function signOutAction() {
+    "use server";
+    await signOut({ redirectTo: "/" });
+  }
+
   return (
-    <header className="border-b border-border bg-background">
+    <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
       <div className="mx-auto flex h-7 w-full items-center justify-between gap-4 px-6 lg:px-10 2xl:px-14 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
         <div className="flex items-center gap-3">
           <span className="num">{stamp}</span>
@@ -33,72 +53,26 @@ export async function SiteHeader() {
         </div>
       </div>
       <Separator />
-      <div className="mx-auto flex h-14 w-full items-center justify-between gap-4 px-6 lg:px-10 2xl:px-14">
-        <Link href="/" className="group flex items-baseline gap-3">
-          <span className="text-lg font-semibold tracking-[-0.01em] text-foreground">
-            LK / Card Offers
-          </span>
-          <span className="hidden text-[10px] uppercase tracking-[0.25em] text-muted-foreground sm:inline">
-            {"// ticker of the wallet"}
-          </span>
-        </Link>
-        <nav className="hidden items-center gap-6 text-[11px] uppercase tracking-[0.2em] md:flex">
-          <Link
-            href="/offers"
-            className="text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Offers
+      <div className="relative mx-auto flex h-14 w-full items-center justify-between gap-6 px-6 lg:px-10 2xl:px-14">
+        <div className="flex items-center gap-8">
+          <Link href="/" className="flex items-baseline gap-3">
+            <span className="text-lg font-semibold tracking-[-0.01em] text-foreground">
+              LK / Card Offers
+            </span>
+            <span className="hidden text-[10px] uppercase tracking-[0.25em] text-muted-foreground lg:inline">
+              {"// ticker of the wallet"}
+            </span>
           </Link>
-          {session?.user && (
-            <Link
-              href="/submit"
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Submit
-            </Link>
-          )}
-          {roleAtLeast(role, "maintainer") && (
-            <Link
-              href="/maintainer"
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Maintainer
-            </Link>
-          )}
-          {roleAtLeast(role, "admin") && (
-            <Link
-              href="/admin"
-              className="text-muted-foreground transition-colors hover:text-foreground"
-            >
-              Admin
-            </Link>
-          )}
-        </nav>
+          <NavLinks items={navItems} />
+        </div>
         <div className="flex items-center gap-2">
           {session?.user ? (
-            <>
-              <Link
-                href="/account"
-                className="hidden items-center gap-2 sm:flex"
-              >
-                <Badge variant="outline" className="text-[10px] uppercase">
-                  {session.user.role}
-                </Badge>
-                <span className="text-xs text-foreground">
-                  {session.user.name}
-                </span>
-              </Link>
-              <form
-                action={async () => {
-                  "use server";
-                  await signOut({ redirectTo: "/" });
-                }}
-              >
-                <Button type="submit" variant="ghost" size="sm">
-                  Sign out
-                </Button>
-              </form>
-            </>
+            <AccountMenu
+              name={session.user.name ?? "Account"}
+              email={session.user.email ?? ""}
+              role={session.user.role}
+              signOutAction={signOutAction}
+            />
           ) : (
             <>
               <Link href="/login">
@@ -111,6 +85,7 @@ export async function SiteHeader() {
               </Link>
             </>
           )}
+          <MobileNav items={navItems} />
         </div>
       </div>
     </header>
