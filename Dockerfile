@@ -35,6 +35,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 
+# oven/bun:*-slim sets `USER bun` by default — escalate so apt-get works.
+USER root
+
 # Install only what the entrypoint shell needs.
 RUN apt-get update \
  && apt-get install -y --no-install-recommends ca-certificates tini \
@@ -60,12 +63,20 @@ COPY --from=builder /app/lib ./lib
 RUN mkdir -p /app/public/uploads/offers /app/public/uploads/scraped
 
 COPY docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
-RUN chmod +x /usr/local/bin/docker-entrypoint.sh
+# Strip any CRLF that crept in from a Windows checkout, then mark executable.
+# Without this, a `\r` in the shebang trips the Linux kernel:
+#   "/usr/bin/env: 'bash\r': No such file or directory"
+RUN sed -i 's/\r$//' /usr/local/bin/docker-entrypoint.sh \
+ && chmod +x /usr/local/bin/docker-entrypoint.sh
+
+# Drop privileges for the running app. The bun user is uid 1000.
+RUN chown -R bun:bun /app
+USER bun
 
 EXPOSE 3000
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD bun -e "fetch('http://127.0.0.1:3000/api/health').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))"
 
-ENTRYPOINT ["/usr/bin/tini", "--", "docker-entrypoint.sh"]
+ENTRYPOINT ["/usr/bin/tini", "--", "/usr/local/bin/docker-entrypoint.sh"]
 CMD ["bun", "run", "start"]
