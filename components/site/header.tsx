@@ -7,6 +7,7 @@ import { NavLinks, type NavItem } from "@/components/site/nav-links";
 import { MobileNav } from "@/components/site/mobile-nav";
 import { AccountMenu } from "@/components/site/account-menu";
 import { ThemeToggle } from "@/components/site/theme-toggle";
+import { CommandPalette } from "@/components/site/command-palette";
 
 export async function SiteHeader() {
   const session = await auth();
@@ -64,6 +65,7 @@ export async function SiteHeader() {
           <NavLinks items={navItems} />
         </div>
         <div className="flex items-center gap-2">
+          <CommandPalette />
           <ThemeToggle />
           {session?.user ? (
             <AccountMenu

@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 630" width="1200" height="630">
+  <defs>
+    <pattern id="grid" width="24" height="24" patternUnits="userSpaceOnUse">
+      <circle cx="1" cy="1" r="1" fill="#1c1812" opacity="0.06"/>
+    </pattern>
+  </defs>
+  <rect width="1200" height="630" fill="#fdf6e8"/>
+  <rect width="1200" height="630" fill="url(#grid)"/>
+
+  <line x1="60" y1="60" x2="1140" y2="60" stroke="#d8c9ad" stroke-width="1"/>
+  <line x1="60" y1="570" x2="1140" y2="570" stroke="#d8c9ad" stroke-width="1"/>
+
+  <text x="60" y="48"
+        font-family="ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, monospace"
+        font-size="14" font-weight="500" fill="#7a6b58" letter-spacing="3">№ 01 · SRI LANKA CARD OFFERS WIRE</text>
+  <text x="1140" y="48" text-anchor="end"
+        font-family="ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, monospace"
+        font-size="14" font-weight="500" fill="#7a6b58" letter-spacing="3">VOL 01 / ISS 01</text>
+
+  <text x="60" y="240"
+        font-family="ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, monospace"
+        font-size="14" font-weight="500" fill="#7a6b58" letter-spacing="4">CATALOG · DAILY · COLOMBO</text>
+
+  <text x="60" y="370"
+        font-family="ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, monospace"
+        font-size="96" font-weight="700" fill="#1c1812" letter-spacing="-3">Card offers,</text>
+  <text x="60" y="470"
+        font-family="ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, monospace"
+        font-size="96" font-weight="700" fill="#c77a3a" letter-spacing="-3">curated daily.</text>
+
+  <text x="60" y="558"
+        font-family="ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, monospace"
+        font-size="16" font-weight="500" fill="#1c1812" letter-spacing="2">LK / CARD OFFERS</text>
+  <text x="1140" y="558" text-anchor="end"
+        font-family="ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, monospace"
+        font-size="14" font-weight="500" fill="#7a6b58" letter-spacing="3">NO SCRAPING · NO EXPIRED CLUTTER</text>
+
+  <circle cx="1135" cy="320" r="6" fill="#c77a3a"/>
+  <line x1="900" y1="320" x2="1125" y2="320" stroke="#c77a3a" stroke-width="1"/>
+</svg>

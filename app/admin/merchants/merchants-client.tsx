@@ -190,7 +190,7 @@ export function MerchantsClient({ initial }: { initial: Merchant[] }) {
         </Dialog>
       </div>
 
-      <div className="border border-border bg-card">
+      <div className="hidden border border-border bg-card md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -234,6 +234,46 @@ export function MerchantsClient({ initial }: { initial: Merchant[] }) {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="space-y-2 md:hidden">
+        {initial.length === 0 ? (
+          <p className="border border-dashed border-border bg-muted/20 p-6 text-center text-xs text-muted-foreground">
+            No merchants yet.
+          </p>
+        ) : (
+          initial.map((m) => (
+            <article
+              key={m.id}
+              className="border border-border bg-card px-3 py-3 text-xs"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 space-y-1">
+                  <p className="truncate font-medium">{m.name}</p>
+                  {(m.locationSummary || m.contact) && (
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {[m.locationSummary, m.contact].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                </div>
+                <Badge
+                  variant={m.isActive ? "secondary" : "outline"}
+                  className="shrink-0 text-[10px] uppercase tracking-wider"
+                >
+                  {m.isActive ? "active" : "inactive"}
+                </Badge>
+              </div>
+              <div className="mt-2 flex justify-end gap-1 border-t border-border/60 pt-2">
+                <Button size="xs" variant="ghost" onClick={() => openEdit(m)}>
+                  Edit
+                </Button>
+                <Button size="xs" variant="ghost" onClick={() => handleDelete(m.id)}>
+                  Delete
+                </Button>
+              </div>
+            </article>
+          ))
+        )}
       </div>
 
       <Dialog open={editId !== null} onOpenChange={(o) => !o && setEditId(null)}>

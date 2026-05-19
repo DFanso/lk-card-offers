@@ -130,7 +130,17 @@ If you get a journal conflict during merge, do the same on top of `master` rathe
 
 ```bash
 bun lint           # eslint flat config
-bun build          # next build
+bun test           # vitest unit tests
+bun run build      # next build
 ```
 
 Fill in the PR template — especially screenshots for any UI change.
+
+## Tests
+
+Unit tests live in `tests/**/*.test.ts` and run via Vitest. They cover modules with no Next/DB dependencies (validation, rate-limit, logger). When adding tests for code that imports `next/*` or hits the DB, isolate it via mocks or move pure logic into a separately-importable module.
+
+```bash
+bun test           # one-shot
+bun test:watch     # watch mode
+```

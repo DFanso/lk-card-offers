@@ -12,6 +12,7 @@ import {
 import { offerInputSchema, type OfferInput } from "@/lib/validation/offer";
 import { requireRole } from "@/lib/rbac";
 import { resolveMerchantId } from "@/lib/actions/merchants-resolve";
+import { log } from "@/lib/log";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -74,38 +75,44 @@ export async function createOffer(
   const status: OfferStatusValue =
     new Date(data.endDate) < new Date() ? "expired" : "published";
 
-  const merchantId = await resolveMerchantId({
-    merchantId: data.merchantId,
-    newMerchantName: data.newMerchantName,
-  });
+  try {
+    const merchantId = await resolveMerchantId({
+      merchantId: data.merchantId,
+      newMerchantName: data.newMerchantName,
+    });
 
-  const inserted = await db
-    .insert(offers)
-    .values({
-      title: data.title,
-      description: data.description,
-      imageUrl: data.imageUrl ?? null,
-      merchantId,
-      categoryId: data.categoryId,
-      startDate: data.startDate,
-      endDate: data.endDate,
-      sourceUrl: data.sourceUrl,
-      locationScope: data.locationScope ?? null,
-      scheduleJson: (data.scheduleJson as object | undefined) ?? null,
-      status,
-      createdByUserId: session.user.id,
-      publishedByMaintainerId: status === "published" ? session.user.id : null,
-      publishedAt: status === "published" ? new Date() : null,
-    })
-    .returning({ id: offers.id });
+    const inserted = await db
+      .insert(offers)
+      .values({
+        title: data.title,
+        description: data.description,
+        imageUrl: data.imageUrl ?? null,
+        merchantId,
+        categoryId: data.categoryId,
+        startDate: data.startDate,
+        endDate: data.endDate,
+        sourceUrl: data.sourceUrl,
+        locationScope: data.locationScope ?? null,
+        scheduleJson: (data.scheduleJson as object | undefined) ?? null,
+        status,
+        createdByUserId: session.user.id,
+        publishedByMaintainerId: status === "published" ? session.user.id : null,
+        publishedAt: status === "published" ? new Date() : null,
+      })
+      .returning({ id: offers.id });
 
-  const offerId = inserted[0].id;
-  await setOfferLinks(offerId, data.bankIds, data.cardTypeIds);
+    const offerId = inserted[0].id;
+    await setOfferLinks(offerId, data.bankIds, data.cardTypeIds);
 
-  revalidatePath("/");
-  revalidatePath("/offers");
-  revalidatePath("/maintainer");
-  return { ok: true, data: { id: offerId } };
+    log.info("offer_created", { offerId, userId: session.user.id, status });
+    revalidatePath("/");
+    revalidatePath("/offers");
+    revalidatePath("/maintainer");
+    return { ok: true, data: { id: offerId } };
+  } catch (err) {
+    log.error("offer_create_failed", { err, userId: session.user.id });
+    return { ok: false, error: "Could not create offer. Please try again." };
+  }
 }
 
 export async function updateOffer(

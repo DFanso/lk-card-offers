@@ -8,14 +8,22 @@ const jetbrainsMono = JetBrains_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "LK Card Offers",
+  title: {
+    default: "LK Card Offers",
+    template: "%s · LK Card Offers",
+  },
   description: "Discover credit & debit card offers from Sri Lankan banks.",
+  applicationName: "LK Card Offers",
 };
 
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 5,
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#fdf6e8" },
+    { media: "(prefers-color-scheme: dark)", color: "#1c1812" },
+  ],
 };
 
 import { Providers } from "@/components/providers/providers"

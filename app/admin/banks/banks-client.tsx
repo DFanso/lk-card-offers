@@ -188,7 +188,7 @@ export function BanksClient({ initial }: { initial: Bank[] }) {
         </Dialog>
       </div>
 
-      <div className="border border-border bg-card">
+      <div className="hidden border border-border bg-card md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -235,6 +235,44 @@ export function BanksClient({ initial }: { initial: Bank[] }) {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="space-y-2 md:hidden">
+        {initial.length === 0 ? (
+          <p className="border border-dashed border-border bg-muted/20 p-6 text-center text-xs text-muted-foreground">
+            No banks yet.
+          </p>
+        ) : (
+          initial.map((b) => (
+            <article
+              key={b.id}
+              className="border border-border bg-card px-3 py-3 text-xs"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 space-y-1">
+                  <p className="truncate font-medium">{b.name}</p>
+                  <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Slug: <span className="num text-foreground">{b.slug}</span>
+                  </p>
+                </div>
+                <Badge
+                  variant={b.isActive ? "secondary" : "outline"}
+                  className="shrink-0 text-[10px] uppercase tracking-wider"
+                >
+                  {b.isActive ? "active" : "inactive"}
+                </Badge>
+              </div>
+              <div className="mt-2 flex justify-end gap-1 border-t border-border/60 pt-2">
+                <Button size="xs" variant="ghost" onClick={() => openEdit(b)}>
+                  Edit
+                </Button>
+                <Button size="xs" variant="ghost" onClick={() => handleDelete(b.id)}>
+                  Delete
+                </Button>
+              </div>
+            </article>
+          ))
+        )}
       </div>
 
       <Dialog open={editId !== null} onOpenChange={(o) => !o && setEditId(null)}>
