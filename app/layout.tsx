@@ -40,7 +40,7 @@ export default function RootLayout({
         <Providers>
           <div className="flex min-h-screen flex-col">
             <SiteHeader />
-            <main className="mx-auto w-full flex-1 px-6 py-6 lg:px-10 2xl:px-14">
+            <main className="mx-auto w-full max-w-[1440px] flex-1 px-6 py-6 lg:px-10">
               {children}
             </main>
             <SiteFooter />
