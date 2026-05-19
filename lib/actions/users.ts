@@ -9,6 +9,7 @@ import {
   type UserRoleValue,
 } from "@/db/schema";
 import { requireRole, requireSession } from "@/lib/rbac";
+import { rateLimit } from "@/lib/rate-limit";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -20,6 +21,14 @@ export async function requestMaintainer(note?: string): Promise<ActionResult> {
     session = await requireSession();
   } catch {
     return { ok: false, error: "Unauthorized" };
+  }
+
+  const limit = rateLimit(`maintainer-request:${session.user.id}`, 3, 60 * 60_000);
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: `Too many requests. Try again in ${Math.ceil(limit.retryAfterMs / 60_000)} min.`,
+    };
   }
 
   // Already a maintainer or higher → no-op

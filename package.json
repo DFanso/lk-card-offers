@@ -17,7 +17,8 @@
     "scrape:dfcc": "tsx scripts/scrape-dfcc.ts",
     "scrape:combank": "tsx scripts/scrape-combank.ts",
     "scrape:peoples": "tsx scripts/scrape-peoples.ts",
-    "uploads:prune": "tsx scripts/prune-uploads.ts"
+    "uploads:prune": "tsx scripts/prune-uploads.ts",
+    "merchants:normalize": "tsx scripts/normalize-merchants.ts"
   },
   "dependencies": {
     "@auth/core": "^0.34.3",

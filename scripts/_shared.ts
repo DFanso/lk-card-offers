@@ -14,6 +14,11 @@ import {
   type CardTypeKindValue,
   type OfferStatusValue,
 } from "../db/schema";
+import { MERCHANT_OVERRIDES } from "./merchant-overrides";
+
+function applyMerchantOverride(name: string): string {
+  return MERCHANT_OVERRIDES[name.toLowerCase()] ?? name;
+}
 
 export const UA =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124 Safari/537.36";
@@ -209,7 +214,8 @@ export async function ensureCategoryBySlug(
   return existing[0]?.id ?? null;
 }
 
-export async function ensureMerchant(name: string): Promise<string> {
+export async function ensureMerchant(rawName: string): Promise<string> {
+  const name = applyMerchantOverride(rawName);
   const found = await db
     .select({ id: merchants.id })
     .from(merchants)

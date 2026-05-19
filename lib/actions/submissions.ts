@@ -13,6 +13,7 @@ import {
 import { submissionInputSchema, type SubmissionInput } from "@/lib/validation/offer";
 import { requireRole, requireSession } from "@/lib/rbac";
 import { resolveMerchantId } from "@/lib/actions/merchants-resolve";
+import { rateLimit } from "@/lib/rate-limit";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
@@ -41,6 +42,13 @@ export async function submitOffer(
     session = await requireSession();
   } catch {
     return { ok: false, error: "Unauthorized" };
+  }
+  const limit = rateLimit(`submit:${session.user.id}`, 10, 60 * 60_000);
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: `Submission cap reached. Try again in ${Math.ceil(limit.retryAfterMs / 60_000)} min.`,
+    };
   }
   const parsed = submissionInputSchema.safeParse(input);
   if (!parsed.success) {
