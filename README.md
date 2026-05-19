@@ -156,6 +156,7 @@ bun scrape:dfcc          # ~130 offers from dfcc.lk/credit-card-promotions
 bun scrape:combank       # ~25 offers from combank.lk/rewards-promotions
 bun scrape:peoples       # ~145 offers from peoplesbank.lk/special-offers
 bun scrape:ndb           # NDB Bank — paginated by category at /cards/card-offers/{category}
+bun scrape:ntb           # Nations Trust Bank — one DB offer per merchant row on each /promotions bucket page
 ```
 
 Each scraper is idempotent on `sourceUrl` — safe to re-run on a schedule. Pass `-- --reset` to wipe that bank's offers and re-import:
@@ -166,7 +167,7 @@ bun scrape:dfcc -- --reset
 
 People's Bank's image CDN blocks hotlinking, so its scraper downloads images to `/public/uploads/scraped/peoples/` and rewrites the URL to a local path.
 
-For the full state of bank coverage (including HNB/Sampath/BOC/NSB and why each isn't shipped), see [scripts/SCRAPERS.md](scripts/SCRAPERS.md).
+For the full state of bank coverage (including HNB, Sampath, BOC, NSB, Pan Asia and why each isn't shipped), see [scripts/SCRAPERS.md](scripts/SCRAPERS.md).
 
 ---
 

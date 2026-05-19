@@ -10,10 +10,11 @@ This catalog imports offers from Sri Lankan banks via one-shot scripts under `sc
 | Commercial    | `bun scrape:combank` | `combank.lk/rewards-promotions`                               | ~25 offers, single page split by `div.offers-row[id]`                 |
 | People's Bank | `bun scrape:peoples` | `peoplesbank.lk/special-offers`                               | ~145 offers, downloads images locally (CDN blocks hotlinking)         |
 | NDB           | `bun scrape:ndb`     | `ndbbank.com/cards/card-offers/{category}`                    | 8 category pages, Bootstrap-rendered SSR — `.card.offer-card` per offer |
+| Nations Trust | `bun scrape:ntb`     | `nationstrust.com/promotions` + per-bucket detail pages       | Listing has ~20 buckets; each bucket detail page contains a `.saving-rate-table` with one merchant per `<tr>`. One DB offer per merchant row. |
 
 ## Blocked banks (investigated, not shippable without extra infra)
 
-These five were requested in #5. Investigation summary:
+Investigation summary for everything that was requested but couldn't ship:
 
 ### HNB — JS-rendered SPA
 - URL: `https://www.hnb.lk/` (the `.net` host doesn't resolve)
@@ -34,6 +35,11 @@ These five were requested in #5. Investigation summary:
 - URL: `https://www.nsb.lk/`
 - NSB is primarily a savings bank. Their sitemap lists ~196 URLs, none mention card promotions or merchant offers. We tried `/promotions`, `/offers`, `/card-offers`, `/credit-card-offers`, `/merchant-discounts`, `/discounts`, `/atm-card-offers` — all 404. They publish a master card application PDF from 2018 and that's it.
 - **Decision**: leave out of the scraper set. If NSB launches a card-promotion section in the future, revisit.
+
+### Pan Asia (PABC) — Sucuri Cloudproxy JS challenge
+- URL: `https://www.pabcbank.com/`
+- Every HTML page returns a 307 to a Sucuri challenge page that sets a cookie via JavaScript and reloads. `curl` can't satisfy this. Their sitemap (`/sitemap.xml`, `/page-sitemap.xml`, `/post-sitemap.xml`) and image URLs are accessible because Sucuri doesn't gate XML, but the sitemap doesn't include any `/promotions`, `/offers`, or `/cards-promotions` page — Pan Asia surfaces offers via a homepage carousel only, which isn't accessible without solving the challenge.
+- **Needs**: headless browser session that can solve the Sucuri challenge. Same severity as BOC and HNB.
 
 ## Adding a new scraper
 
