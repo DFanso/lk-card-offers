@@ -67,6 +67,12 @@ export default async function MaintainerDashboard() {
             {publishedRow?.count.toString().padStart(2, "0") ?? "00"}
           </p>
           <p className="text-xs text-muted-foreground">Offers you published</p>
+          <Link
+            href="/maintainer/offers?mine=1"
+            className="mt-3 inline-block text-[10px] uppercase tracking-[0.18em] text-foreground underline-offset-4 hover:underline"
+          >
+            View mine →
+          </Link>
         </div>
         <div className="bg-card p-5">
           <div className="num text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
@@ -76,6 +82,12 @@ export default async function MaintainerDashboard() {
             {allPublishedRow?.count.toString().padStart(2, "0") ?? "00"}
           </p>
           <p className="text-xs text-muted-foreground">Live offers</p>
+          <Link
+            href="/maintainer/offers"
+            className="mt-3 inline-block text-[10px] uppercase tracking-[0.18em] text-foreground underline-offset-4 hover:underline"
+          >
+            Browse all →
+          </Link>
         </div>
       </div>
 

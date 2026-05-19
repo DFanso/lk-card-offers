@@ -117,6 +117,15 @@ bun db:migrate     # apply locally
 
 Commit the generated SQL alongside the schema change. Only use `bun db:push` for throwaway local exploration.
 
+**Migration ordering.** `db/migrations/meta/_journal.json` is rewritten on every `db:generate`, so two open PRs that both add migrations will conflict on it. Before opening a schema-changing PR:
+
+1. Rebase your branch on the latest `master`.
+2. Delete the migration files **you** added (keep the schema changes).
+3. Run `bun db:generate` again so your migration sits at the tip of the journal.
+4. `bun db:migrate` to verify it still applies cleanly.
+
+If you get a journal conflict during merge, do the same on top of `master` rather than hand-resolving the JSON.
+
 ## Before opening a PR
 
 ```bash

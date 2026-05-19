@@ -37,6 +37,7 @@ type ListOptions = {
   pageSize?: number;
   sort?: "latest" | "ending_soon";
   endsBefore?: string;
+  publishedByMaintainerId?: string;
 };
 
 export async function listOffers(opts: ListOptions = {}): Promise<{
@@ -60,6 +61,11 @@ export async function listOffers(opts: ListOptions = {}): Promise<{
   }
   if (opts.endsBefore) {
     baseConditions.push(lte(offers.endDate, opts.endsBefore));
+  }
+  if (opts.publishedByMaintainerId) {
+    baseConditions.push(
+      eq(offers.publishedByMaintainerId, opts.publishedByMaintainerId),
+    );
   }
   if (opts.q && opts.q.trim()) {
     const term = `%${opts.q.trim().toLowerCase()}%`;

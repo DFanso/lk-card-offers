@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { maintainerRequests, offerSubmissions, users } from "@/db/schema";
@@ -30,6 +31,9 @@ export default async function AccountPage() {
 
   const currentRole = currentRow[0]?.role ?? session.user.role;
   const pendingRequest = requests.find((r) => r.status === "pending");
+  const pendingSubmissionsCount = submissions.filter(
+    (s) => s.status === "pending_review",
+  ).length;
 
   return (
     <div className="space-y-10">
@@ -104,8 +108,16 @@ export default async function AccountPage() {
       <section className="space-y-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-sm font-medium">My submissions</h2>
-          <span className="num text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+          <span className="num flex items-center gap-2 text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
             № 02 · {submissions.length.toString().padStart(2, "0")}
+            {pendingSubmissionsCount > 0 && (
+              <Badge
+                variant="outline"
+                className="text-[10px] uppercase tracking-wider"
+              >
+                {pendingSubmissionsCount} pending
+              </Badge>
+            )}
           </span>
         </div>
         <Separator />
@@ -114,29 +126,56 @@ export default async function AccountPage() {
             You have not submitted any offers yet.
           </p>
         ) : (
-          <ul className="space-y-1.5">
+          <ul className="space-y-2">
             {submissions.map((s) => {
               const payload = s.payload as { title?: string };
               return (
                 <li
                   key={s.id}
-                  className="flex items-center justify-between border border-border bg-card px-3 py-2 text-xs"
+                  className="space-y-2 border border-border bg-card px-3 py-3 text-xs"
                 >
-                  <span className="truncate font-medium">
-                    {payload.title ?? "Untitled"}
-                  </span>
-                  <Badge
-                    variant={
-                      s.status === "approved"
-                        ? "secondary"
-                        : s.status === "rejected"
-                        ? "destructive"
-                        : "outline"
-                    }
-                    className="ml-3 shrink-0 text-[10px] uppercase tracking-wider"
-                  >
-                    {s.status}
-                  </Badge>
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 space-y-1">
+                      <p className="truncate font-medium">
+                        {payload.title ?? "Untitled"}
+                      </p>
+                      <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground num">
+                        Submitted {new Date(s.createdAt).toLocaleDateString()}
+                      </p>
+                    </div>
+                    <Badge
+                      variant={
+                        s.status === "approved"
+                          ? "secondary"
+                          : s.status === "rejected"
+                          ? "destructive"
+                          : "outline"
+                      }
+                      className="shrink-0 text-[10px] uppercase tracking-wider"
+                    >
+                      {s.status}
+                    </Badge>
+                  </div>
+                  {(s.reviewedAt || s.reviewNote || s.resultingOfferId) && (
+                    <div className="space-y-1 border-t border-border/60 pt-2 text-[11px] text-muted-foreground">
+                      {s.reviewedAt && (
+                        <p className="num">
+                          Reviewed {new Date(s.reviewedAt).toLocaleString()}
+                        </p>
+                      )}
+                      {s.reviewNote && (
+                        <p className="italic">“{s.reviewNote}”</p>
+                      )}
+                      {s.resultingOfferId && s.status === "approved" && (
+                        <Link
+                          href={`/offers/${s.resultingOfferId}`}
+                          className="inline-block text-[10px] uppercase tracking-[0.22em] text-foreground underline-offset-4 hover:underline"
+                        >
+                          View published offer →
+                        </Link>
+                      )}
+                    </div>
+                  )}
                 </li>
               );
             })}
