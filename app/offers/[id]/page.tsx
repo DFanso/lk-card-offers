@@ -29,6 +29,9 @@ export default async function OfferDetailPage({
   const offer = await getOfferById(id);
   if (!offer) notFound();
 
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (offer.status !== "published" || offer.endDate < todayStr) notFound();
+
   const remaining = daysLeft(offer.endDate);
 
   return (

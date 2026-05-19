@@ -180,6 +180,17 @@ curl -X POST -H "x-cron-secret: $CRON_SECRET" \
 
 ---
 
+## Health
+
+`GET /api/health` returns JSON with app status, DB reachability, and uptime in seconds. Returns 200 when the DB responds, 503 otherwise. Wire it into any uptime monitor or load-balancer health check.
+
+```bash
+curl https://your-domain/api/health
+# { "status": "ok", "db": "ok", "uptime": 42 }
+```
+
+---
+
 ## Project Structure
 
 ```
