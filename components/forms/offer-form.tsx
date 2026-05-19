@@ -33,7 +33,21 @@ import { uploadOfferImage } from "@/lib/actions/upload";
 
 export type OfferFormSubmitFn = (
   values: OfferInput,
-) => Promise<{ ok: true } | { ok: false; error: string }>;
+) => Promise<
+  | { ok: true }
+  | { ok: false; error: string; fieldErrors?: Record<string, string[]> }
+>;
+
+function FieldError({ messages }: { messages?: string[] }) {
+  if (!messages?.length) return null;
+  return (
+    <ul className="mt-1 space-y-0.5 text-[11px] text-destructive">
+      {messages.map((m, i) => (
+        <li key={i}>{m}</li>
+      ))}
+    </ul>
+  );
+}
 
 export type OfferFormInitial = Partial<OfferInput>;
 
@@ -102,6 +116,7 @@ export function OfferForm({
   const merchants = useMerchants();
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
   const [bankIds, setBankIds] = useState<string[]>(initial?.bankIds ?? []);
   const [cardTypeIds, setCardTypeIds] = useState<string[]>(
@@ -137,6 +152,7 @@ export function OfferForm({
   function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
+    setFieldErrors({});
     const fd = new FormData(e.currentTarget);
     const values: OfferInput = {
       title: String(fd.get("title") ?? ""),
@@ -158,7 +174,10 @@ export function OfferForm({
     };
     startTransition(async () => {
       const result = await onSubmit(values);
-      if (!result.ok) setError(result.error);
+      if (!result.ok) {
+        setError(result.error);
+        setFieldErrors(result.fieldErrors ?? {});
+      }
     });
   }
 
@@ -186,7 +205,9 @@ export function OfferForm({
             required
             defaultValue={initial?.title}
             placeholder="20% off dining at…"
+            aria-invalid={fieldErrors.title ? true : undefined}
           />
+          <FieldError messages={fieldErrors.title} />
         </div>
         <div>
           <FieldLabel htmlFor="description">Description</FieldLabel>
@@ -197,7 +218,9 @@ export function OfferForm({
             rows={5}
             defaultValue={initial?.description}
             placeholder="Spell out the offer terms in plain language."
+            aria-invalid={fieldErrors.description ? true : undefined}
           />
+          <FieldError messages={fieldErrors.description} />
         </div>
         <div>
           <FieldLabel htmlFor="sourceUrl">Source URL</FieldLabel>
@@ -208,7 +231,9 @@ export function OfferForm({
             required
             placeholder="https://bank.lk/promotion"
             defaultValue={initial?.sourceUrl}
+            aria-invalid={fieldErrors.sourceUrl ? true : undefined}
           />
+          <FieldError messages={fieldErrors.sourceUrl} />
         </div>
       </FormSection>
 
@@ -271,8 +296,11 @@ export function OfferForm({
               required
               placeholder="New merchant name"
               defaultValue={initial?.newMerchantName ?? ""}
+              aria-invalid={fieldErrors.newMerchantName ? true : undefined}
             />
           )}
+          <FieldError messages={fieldErrors.merchantId} />
+          <FieldError messages={fieldErrors.newMerchantName} />
           <p className="mt-1 text-[11px] text-muted-foreground">
             {merchantMode === "new"
               ? "We'll add this merchant when the offer is published."
@@ -303,6 +331,7 @@ export function OfferForm({
                 ))}
             </SelectContent>
           </Select>
+          <FieldError messages={fieldErrors.categoryId} />
         </div>
 
         <div>
@@ -315,7 +344,9 @@ export function OfferForm({
             name="locationScope"
             placeholder="e.g. Colombo, Island-wide"
             defaultValue={initial?.locationScope ?? ""}
+            aria-invalid={fieldErrors.locationScope ? true : undefined}
           />
+          <FieldError messages={fieldErrors.locationScope} />
         </div>
       </FormSection>
 
@@ -329,7 +360,9 @@ export function OfferForm({
               type="date"
               required
               defaultValue={initial?.startDate}
+              aria-invalid={fieldErrors.startDate ? true : undefined}
             />
+            <FieldError messages={fieldErrors.startDate} />
           </div>
           <div>
             <FieldLabel htmlFor="endDate">End date</FieldLabel>
@@ -339,7 +372,9 @@ export function OfferForm({
               type="date"
               required
               defaultValue={initial?.endDate}
+              aria-invalid={fieldErrors.endDate ? true : undefined}
             />
+            <FieldError messages={fieldErrors.endDate} />
           </div>
         </div>
       </FormSection>
@@ -372,6 +407,7 @@ export function OfferForm({
                 </label>
               ))}
           </div>
+          <FieldError messages={fieldErrors.bankIds} />
         </div>
 
         <div>
@@ -400,6 +436,7 @@ export function OfferForm({
                 </label>
               ))}
           </div>
+          <FieldError messages={fieldErrors.cardTypeIds} />
         </div>
       </FormSection>
 
@@ -464,6 +501,7 @@ export function OfferForm({
                 placeholder="Paste an image URL"
                 value={imageUrl}
                 onChange={(e) => setImageUrl(e.target.value)}
+                aria-invalid={fieldErrors.imageUrl ? true : undefined}
               />
             </div>
             {uploadError && (
@@ -471,11 +509,28 @@ export function OfferForm({
             )}
           </div>
         )}
+        <FieldError messages={fieldErrors.imageUrl} />
       </FormSection>
 
       {error && (
-        <div className="border border-destructive/40 bg-destructive/5 px-4 py-2 text-xs text-destructive">
-          {error}
+        <div className="space-y-1 border border-destructive/40 bg-destructive/5 px-4 py-2 text-xs text-destructive">
+          {Object.keys(fieldErrors).length > 0 ? (
+            <>
+              <p className="font-medium">Please fix the highlighted fields:</p>
+              <ul className="list-disc space-y-0.5 pl-5 text-[11px]">
+                {Object.entries(fieldErrors).flatMap(([field, msgs]) =>
+                  msgs.map((m, i) => (
+                    <li key={`${field}-${i}`}>
+                      <span className="font-medium">{field === "_" ? "" : `${field}: `}</span>
+                      {m}
+                    </li>
+                  )),
+                )}
+              </ul>
+            </>
+          ) : (
+            error
+          )}
         </div>
       )}
 

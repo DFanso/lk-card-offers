@@ -16,7 +16,22 @@ import { resolveMerchantId } from "@/lib/actions/merchants-resolve";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      fieldErrors?: Record<string, string[]>;
+    };
+
+function zodFieldErrors(
+  issues: { path: PropertyKey[]; message: string }[],
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const issue of issues) {
+    const key = issue.path.map((p) => String(p)).join(".") || "_";
+    (out[key] ??= []).push(issue.message);
+  }
+  return out;
+}
 
 export async function submitOffer(
   input: SubmissionInput,
@@ -29,7 +44,11 @@ export async function submitOffer(
   }
   const parsed = submissionInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      fieldErrors: zodFieldErrors(parsed.error.issues),
+    };
   }
   const inserted = await db
     .insert(offerSubmissions)

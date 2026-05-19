@@ -3,7 +3,6 @@ import { listOffers } from "@/lib/queries-server/offers";
 import { OfferCard } from "@/components/site/offer-card";
 import { OfferFilters } from "@/components/site/offer-filters";
 import { Disclaimer } from "@/components/site/disclaimer";
-import { Button } from "@/components/ui/button";
 import { Pagination } from "@/components/site/pagination";
 
 export const revalidate = 300;
