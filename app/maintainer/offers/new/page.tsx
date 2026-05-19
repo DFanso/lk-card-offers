@@ -4,7 +4,7 @@ import { NewOfferForm } from "./new-offer-form";
 export const dynamic = "force-dynamic";
 
 export default async function NewOfferPage() {
-  await requireRole("maintainer");
+  const session = await requireRole("maintainer");
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="space-y-2">
@@ -16,7 +16,7 @@ export default async function NewOfferPage() {
           Direct publish — your submission goes live immediately.
         </p>
       </header>
-      <NewOfferForm />
+      <NewOfferForm userId={session.user.id} />
     </div>
   );
 }

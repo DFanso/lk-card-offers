@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -105,10 +105,12 @@ export function OfferForm({
   initial,
   onSubmit,
   submitLabel,
+  draftKey,
 }: {
   initial?: OfferFormInitial;
   onSubmit: OfferFormSubmitFn;
   submitLabel: string;
+  draftKey?: string;
 }) {
   const banks = useBanks();
   const cardTypes = useCardTypes();
@@ -118,22 +120,91 @@ export function OfferForm({
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string[]>>({});
 
-  const [bankIds, setBankIds] = useState<string[]>(initial?.bankIds ?? []);
+  const loadedDraft: Partial<OfferInput> | null = (() => {
+    if (typeof window === "undefined" || !draftKey) return null;
+    try {
+      const raw = localStorage.getItem(draftKey);
+      return raw ? (JSON.parse(raw) as Partial<OfferInput>) : null;
+    } catch {
+      return null;
+    }
+  })();
+  const startValues: Partial<OfferInput> = { ...initial, ...(loadedDraft ?? {}) };
+
+  const [bankIds, setBankIds] = useState<string[]>(startValues.bankIds ?? []);
   const [cardTypeIds, setCardTypeIds] = useState<string[]>(
-    initial?.cardTypeIds ?? [],
+    startValues.cardTypeIds ?? [],
   );
   const [merchantMode, setMerchantMode] = useState<"existing" | "new">(
-    initial?.newMerchantName ? "new" : "existing",
+    startValues.newMerchantName ? "new" : "existing",
   );
   const [merchantId, setMerchantId] = useState<string>(
-    initial?.merchantId ?? "",
+    startValues.merchantId ?? "",
   );
   const [categoryId, setCategoryId] = useState<string>(
-    initial?.categoryId ?? "",
+    startValues.categoryId ?? "",
   );
-  const [imageUrl, setImageUrl] = useState<string>(initial?.imageUrl ?? "");
+  const [imageUrl, setImageUrl] = useState<string>(startValues.imageUrl ?? "");
   const [uploading, setUploading] = useState(false);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [draftSavedAt, setDraftSavedAt] = useState<number | null>(
+    loadedDraft ? Date.now() : null,
+  );
+
+  const formRef = useRef<HTMLFormElement>(null);
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  function persistDraft() {
+    if (!draftKey || typeof window === "undefined") return;
+    const form = formRef.current;
+    if (!form) return;
+    const fd = new FormData(form);
+    const snapshot: Partial<OfferInput> = {
+      title: String(fd.get("title") ?? "") || undefined,
+      description: String(fd.get("description") ?? "") || undefined,
+      sourceUrl: String(fd.get("sourceUrl") ?? "") || undefined,
+      startDate: String(fd.get("startDate") ?? "") || undefined,
+      endDate: String(fd.get("endDate") ?? "") || undefined,
+      locationScope: (fd.get("locationScope") as string) || undefined,
+      newMerchantName:
+        merchantMode === "new"
+          ? String(fd.get("newMerchantName") ?? "") || undefined
+          : undefined,
+      merchantId: merchantMode === "existing" ? merchantId || undefined : undefined,
+      categoryId: categoryId || undefined,
+      imageUrl: imageUrl || undefined,
+      bankIds,
+      cardTypeIds,
+    };
+    const hasContent = Object.values(snapshot).some((v) =>
+      Array.isArray(v) ? v.length > 0 : Boolean(v),
+    );
+    if (!hasContent) {
+      localStorage.removeItem(draftKey);
+      setDraftSavedAt(null);
+      return;
+    }
+    localStorage.setItem(draftKey, JSON.stringify(snapshot));
+    setDraftSavedAt(Date.now());
+  }
+
+  function scheduleDraftSave() {
+    if (!draftKey) return;
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    saveTimer.current = setTimeout(persistDraft, 400);
+  }
+
+  useEffect(() => {
+    if (!draftKey) return;
+    scheduleDraftSave();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [bankIds, cardTypeIds, merchantMode, merchantId, categoryId, imageUrl]);
+
+  function clearDraft() {
+    if (!draftKey || typeof window === "undefined") return;
+    localStorage.removeItem(draftKey);
+    setDraftSavedAt(null);
+  }
 
   async function handleFile(file: File) {
     setUploadError(null);
@@ -177,6 +248,8 @@ export function OfferForm({
       if (!result.ok) {
         setError(result.error);
         setFieldErrors(result.fieldErrors ?? {});
+      } else {
+        clearDraft();
       }
     });
   }
@@ -191,7 +264,12 @@ export function OfferForm({
     );
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4 text-xs">
+    <form
+      ref={formRef}
+      onSubmit={handleSubmit}
+      onInput={scheduleDraftSave}
+      className="space-y-4 text-xs"
+    >
       <FormSection
         step="01"
         title="Basics"
@@ -203,7 +281,7 @@ export function OfferForm({
             id="title"
             name="title"
             required
-            defaultValue={initial?.title}
+            defaultValue={startValues.title}
             placeholder="20% off dining at…"
             aria-invalid={fieldErrors.title ? true : undefined}
           />
@@ -216,7 +294,7 @@ export function OfferForm({
             name="description"
             required
             rows={5}
-            defaultValue={initial?.description}
+            defaultValue={startValues.description}
             placeholder="Spell out the offer terms in plain language."
             aria-invalid={fieldErrors.description ? true : undefined}
           />
@@ -230,7 +308,7 @@ export function OfferForm({
             type="url"
             required
             placeholder="https://bank.lk/promotion"
-            defaultValue={initial?.sourceUrl}
+            defaultValue={startValues.sourceUrl}
             aria-invalid={fieldErrors.sourceUrl ? true : undefined}
           />
           <FieldError messages={fieldErrors.sourceUrl} />
@@ -295,7 +373,7 @@ export function OfferForm({
               name="newMerchantName"
               required
               placeholder="New merchant name"
-              defaultValue={initial?.newMerchantName ?? ""}
+              defaultValue={startValues.newMerchantName ?? ""}
               aria-invalid={fieldErrors.newMerchantName ? true : undefined}
             />
           )}
@@ -343,7 +421,7 @@ export function OfferForm({
             id="locationScope"
             name="locationScope"
             placeholder="e.g. Colombo, Island-wide"
-            defaultValue={initial?.locationScope ?? ""}
+            defaultValue={startValues.locationScope ?? ""}
             aria-invalid={fieldErrors.locationScope ? true : undefined}
           />
           <FieldError messages={fieldErrors.locationScope} />
@@ -359,7 +437,7 @@ export function OfferForm({
               name="startDate"
               type="date"
               required
-              defaultValue={initial?.startDate}
+              defaultValue={startValues.startDate}
               aria-invalid={fieldErrors.startDate ? true : undefined}
             />
             <FieldError messages={fieldErrors.startDate} />
@@ -371,7 +449,7 @@ export function OfferForm({
               name="endDate"
               type="date"
               required
-              defaultValue={initial?.endDate}
+              defaultValue={startValues.endDate}
               aria-invalid={fieldErrors.endDate ? true : undefined}
             />
             <FieldError messages={fieldErrors.endDate} />
@@ -534,8 +612,27 @@ export function OfferForm({
         </div>
       )}
 
-      <div className="flex items-center justify-between border-t border-border pt-4">
-        <span className="ticker">Ready to {submitLabel.toLowerCase()}?</span>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-t border-border pt-4">
+        <div className="flex flex-col gap-1">
+          <span className="ticker">Ready to {submitLabel.toLowerCase()}?</span>
+          {draftKey && draftSavedAt !== null && (
+            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Draft saved · {new Date(draftSavedAt).toLocaleTimeString()}
+              <button
+                type="button"
+                onClick={() => {
+                  if (confirm("Discard the saved draft and start over?")) {
+                    clearDraft();
+                    window.location.reload();
+                  }
+                }}
+                className="ml-2 underline-offset-2 hover:text-foreground hover:underline"
+              >
+                discard
+              </button>
+            </span>
+          )}
+        </div>
         <Button type="submit" disabled={pending} size="lg">
           {pending ? "Saving…" : submitLabel}
         </Button>

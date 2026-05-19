@@ -13,6 +13,7 @@ export const metadata: Metadata = {
 };
 
 import { Providers } from "@/components/providers/providers"
+import { THEME_INIT_SCRIPT } from "@/components/providers/theme-provider"
 import { Toaster } from "sonner"
 import { SiteHeader } from "@/components/site/header"
 import { SiteFooter } from "@/components/site/footer"
@@ -23,7 +24,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={jetbrainsMono.variable}>
+    <html lang="en" className={jetbrainsMono.variable} suppressHydrationWarning>
+      <head>
+        <script
+          dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
+        />
+      </head>
       <body className="font-mono antialiased">
         <Providers>
           <div className="flex min-h-screen flex-col">

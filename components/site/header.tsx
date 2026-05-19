@@ -6,6 +6,7 @@ import { roleAtLeast } from "@/lib/rbac";
 import { NavLinks, type NavItem } from "@/components/site/nav-links";
 import { MobileNav } from "@/components/site/mobile-nav";
 import { AccountMenu } from "@/components/site/account-menu";
+import { ThemeToggle } from "@/components/site/theme-toggle";
 
 export async function SiteHeader() {
   const session = await auth();
@@ -63,6 +64,7 @@ export async function SiteHeader() {
           <NavLinks items={navItems} />
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {session?.user ? (
             <AccountMenu
               name={session.user.name ?? "Account"}
