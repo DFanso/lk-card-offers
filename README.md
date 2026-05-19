@@ -175,6 +175,41 @@ Entrypoint knobs:
 - `SKIP_SEED=1` — run create + migrate, skip seed (useful when seed already ran from a different image).
 - `DB_WAIT_TIMEOUT=60` — seconds to wait for Postgres readiness (default 60).
 
+### Running scrapers inside a deployed container
+
+All `bun scrape:*` and `bun run merchants:normalize` / `bun run uploads:prune` commands work inside the running container — `DATABASE_URL` and `AUTH_SECRET` are inherited from the app process.
+
+**One-off (manual import or maintenance):**
+
+```bash
+# Find the container id (Docker)
+docker ps --filter ancestor=lk-card-offers
+
+# Or in Dokploy → your service → "Terminal" tab. Then:
+bun run scrape:ndb
+bun run scrape:ntb
+bun run scrape:dfcc
+bun run scrape:combank
+bun run scrape:peoples
+bun run merchants:normalize
+bun run uploads:prune
+```
+
+**Scheduled (Dokploy → Schedules):**
+
+| Field   | Value                                              |
+| ------- | -------------------------------------------------- |
+| Name    | `scrape-ndb`                                       |
+| Service | (the deployed app)                                 |
+| Command | `bun run scrape:ndb`                               |
+| Cron    | `0 4 * * *` (4 am UTC daily, or whatever you like) |
+
+Add one per scraper. Each is idempotent on `offers.sourceUrl`, so re-running on a schedule just refreshes anything new.
+
+**External cron (no Dokploy schedule needed):**
+
+If you'd rather not use Dokploy's scheduler, the same pattern as `.github/workflows/cron-expire-offers.yml` works — a GitHub Action that `curl`s an HTTP endpoint. We don't currently expose scrapers via HTTP, but you can add a `/api/cron/scrape-<bank>` route guarded by `CRON_SECRET` the same way.
+
 ---
 
 ## Bank Importers
