@@ -54,21 +54,17 @@ until bun -e "
 done
 log "postgres is reachable"
 
-# Call the TS entry points with Bun directly instead of via the package
-# scripts. The package scripts use `tsx`, but inside this Bun image tsx fails
-# to resolve its own CJS shim. Bun runs TypeScript natively, so this is both
-# simpler and faster than re-introducing tsx.
 log "ensuring database exists…"
-bun db/create-database.ts
+bun run db:create
 
 log "applying migrations…"
-bunx drizzle-kit migrate
+bun run db:migrate
 
 if [ "${SKIP_SEED:-0}" = "1" ]; then
   log "SKIP_SEED=1 — skipping seed"
 else
   log "seeding reference data + super admin…"
-  bun db/seed.ts
+  bun run db:seed
 fi
 
 log "starting app: $*"
