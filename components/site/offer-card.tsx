@@ -100,16 +100,17 @@ export function OfferCard({
       </div>
 
       <div className="mt-auto border-t border-border bg-muted/30 px-4 py-2.5">
-        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.2em] text-muted-foreground">
-          <span className="num">
-            {formatDateShort(offer.startDate)} → {formatDateShort(offer.endDate)}
+        <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 text-[10px] uppercase tracking-[0.14em] text-muted-foreground">
+          <span className="num whitespace-nowrap">
+            {formatDateShort(offer.startDate)} <span aria-hidden>→</span>{" "}
+            {formatDateShort(offer.endDate)}
           </span>
           {remaining > 0 ? (
-            <span className="num text-foreground">
+            <span className="num whitespace-nowrap text-foreground">
               {remaining}d left
             </span>
           ) : (
-            <span className="text-destructive">expired</span>
+            <span className="whitespace-nowrap text-destructive">expired</span>
           )}
         </div>
       </div>
