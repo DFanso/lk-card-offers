@@ -147,6 +147,36 @@ Open [http://localhost:3000](http://localhost:3000) and sign in with `super@exam
 
 ---
 
+## Docker
+
+The repo ships a Dockerfile and a `docker-compose.yml` that brings up Postgres and the app together. The app entrypoint waits for Postgres, creates the database if it's missing, runs migrations, seeds reference data, then starts Next.js.
+
+```bash
+cp .env.example .env       # set AUTH_SECRET at minimum
+docker compose up --build
+```
+
+Then open [http://localhost:3000](http://localhost:3000). User uploads land in the `uploads` named volume so they survive image rebuilds.
+
+To run just the app against an existing Postgres (e.g. a managed DB):
+
+```bash
+docker build -t lk-card-offers .
+docker run --rm -p 3000:3000 \
+  -e DATABASE_URL='postgres://...' \
+  -e AUTH_SECRET='...' \
+  -e NEXTAUTH_URL='https://your-domain' \
+  -e CRON_SECRET='...' \
+  lk-card-offers
+```
+
+Entrypoint knobs:
+- `SKIP_DB_BOOTSTRAP=1` — skip the create/migrate/seed steps (use for sidecar containers).
+- `SKIP_SEED=1` — run create + migrate, skip seed (useful when seed already ran from a different image).
+- `DB_WAIT_TIMEOUT=60` — seconds to wait for Postgres readiness (default 60).
+
+---
+
 ## Bank Importers
 
 The catalog is seeded with sample data; for real volume run the scrapers.
