@@ -1,0 +1,49 @@
+name: Cron · expire offers
+
+on:
+  schedule:
+    # Hourly at :05. GitHub queues can delay scheduled runs by several minutes;
+    # offers expire by `endDate` (day granularity), so a few minutes of drift
+    # is fine.
+    - cron: "5 * * * *"
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+jobs:
+  expire:
+    name: POST /api/cron/expire-offers
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate secrets
+        env:
+          CRON_URL: ${{ secrets.CRON_EXPIRE_OFFERS_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_EXPIRE_OFFERS_URL and CRON_SECRET must be set in repo secrets."
+            exit 1
+          fi
+
+      - name: Trigger expire-offers
+        env:
+          CRON_URL: ${{ secrets.CRON_EXPIRE_OFFERS_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          set -euo pipefail
+          response=$(mktemp)
+          http_code=$(curl --silent --show-error \
+            --max-time 30 \
+            --output "$response" \
+            --write-out "%{http_code}" \
+            -X POST \
+            -H "x-cron-secret: $CRON_SECRET" \
+            "$CRON_URL")
+          echo "HTTP $http_code"
+          cat "$response"
+          echo
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "::error::Cron call failed with HTTP $http_code"
+            exit 1
+          fi

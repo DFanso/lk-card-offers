@@ -179,6 +179,13 @@ curl -X POST -H "x-cron-secret: $CRON_SECRET" \
   https://your-domain/api/cron/expire-offers
 ```
 
+A GitHub Actions workflow (`.github/workflows/cron-expire-offers.yml`) hits this endpoint hourly. To enable it, set two repository secrets:
+
+- `CRON_EXPIRE_OFFERS_URL` — e.g. `https://your-domain/api/cron/expire-offers`
+- `CRON_SECRET` — same value as the server `CRON_SECRET` env var
+
+You can also trigger the workflow manually via the Actions tab (workflow_dispatch).
+
 ---
 
 ## Health
