@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32">
+  <rect width="32" height="32" fill="#1c1812"/>
+  <rect x="2" y="2" width="28" height="28" fill="none" stroke="#c77a3a" stroke-width="1"/>
+  <text x="16" y="22" text-anchor="middle"
+        font-family="ui-monospace, 'JetBrains Mono', SFMono-Regular, Menlo, monospace"
+        font-size="14" font-weight="700" fill="#fff9ed" letter-spacing="-0.5">LK</text>
+</svg>

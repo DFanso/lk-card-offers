@@ -200,7 +200,7 @@ export function CategoriesClient({ initial }: { initial: Category[] }) {
         </Dialog>
       </div>
 
-      <div className="border border-border bg-card">
+      <div className="hidden border border-border bg-card md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -249,6 +249,53 @@ export function CategoriesClient({ initial }: { initial: Category[] }) {
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="space-y-2 md:hidden">
+        {initial.length === 0 ? (
+          <p className="border border-dashed border-border bg-muted/20 p-6 text-center text-xs text-muted-foreground">
+            No categories yet.
+          </p>
+        ) : (
+          initial.map((c) => {
+            const parent = initial.find((p) => p.id === c.parentId);
+            return (
+              <article
+                key={c.id}
+                className="border border-border bg-card px-3 py-3 text-xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0 space-y-1">
+                    <p className="truncate font-medium">{c.name}</p>
+                    <p className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                      Slug: <span className="num text-foreground">{c.slug}</span>
+                      {parent && (
+                        <>
+                          {" · "}Parent:{" "}
+                          <span className="text-foreground">{parent.name}</span>
+                        </>
+                      )}
+                    </p>
+                  </div>
+                  <Badge
+                    variant={c.isActive ? "secondary" : "outline"}
+                    className="shrink-0 text-[10px] uppercase tracking-wider"
+                  >
+                    {c.isActive ? "active" : "inactive"}
+                  </Badge>
+                </div>
+                <div className="mt-2 flex justify-end gap-1 border-t border-border/60 pt-2">
+                  <Button size="xs" variant="ghost" onClick={() => openEdit(c)}>
+                    Edit
+                  </Button>
+                  <Button size="xs" variant="ghost" onClick={() => handleDelete(c.id)}>
+                    Delete
+                  </Button>
+                </div>
+              </article>
+            );
+          })
+        )}
       </div>
 
       <Dialog open={editId !== null} onOpenChange={(o) => !o && setEditId(null)}>

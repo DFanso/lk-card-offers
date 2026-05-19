@@ -134,6 +134,7 @@ cp .env.example .env
 bun db:create     # creates the database if it doesn't exist
 bun db:migrate    # applies migrations from db/migrations
 bun db:seed       # super admin + 6 banks, 5 card types, 6 categories, sample offers
+bun db:seed:dev   # (optional, local dev) ~17 sample offers + maintainer@/user@ test accounts
 ```
 
 ### 4. Run the dev server
@@ -146,6 +147,36 @@ Open [http://localhost:3000](http://localhost:3000) and sign in with `super@exam
 
 ---
 
+## Docker
+
+The repo ships a Dockerfile and a `docker-compose.yml` that brings up Postgres and the app together. The app entrypoint waits for Postgres, creates the database if it's missing, runs migrations, seeds reference data, then starts Next.js.
+
+```bash
+cp .env.example .env       # set AUTH_SECRET at minimum
+docker compose up --build
+```
+
+Then open [http://localhost:3000](http://localhost:3000). User uploads land in the `uploads` named volume so they survive image rebuilds.
+
+To run just the app against an existing Postgres (e.g. a managed DB):
+
+```bash
+docker build -t lk-card-offers .
+docker run --rm -p 3000:3000 \
+  -e DATABASE_URL='postgres://...' \
+  -e AUTH_SECRET='...' \
+  -e NEXTAUTH_URL='https://your-domain' \
+  -e CRON_SECRET='...' \
+  lk-card-offers
+```
+
+Entrypoint knobs:
+- `SKIP_DB_BOOTSTRAP=1` — skip the create/migrate/seed steps (use for sidecar containers).
+- `SKIP_SEED=1` — run create + migrate, skip seed (useful when seed already ran from a different image).
+- `DB_WAIT_TIMEOUT=60` — seconds to wait for Postgres readiness (default 60).
+
+---
+
 ## Bank Importers
 
 The catalog is seeded with sample data; for real volume run the scrapers.
@@ -154,6 +185,8 @@ The catalog is seeded with sample data; for real volume run the scrapers.
 bun scrape:dfcc          # ~130 offers from dfcc.lk/credit-card-promotions
 bun scrape:combank       # ~25 offers from combank.lk/rewards-promotions
 bun scrape:peoples       # ~145 offers from peoplesbank.lk/special-offers
+bun scrape:ndb           # NDB Bank — paginated by category at /cards/card-offers/{category}
+bun scrape:ntb           # Nations Trust Bank — one DB offer per merchant row on each /promotions bucket page
 ```
 
 Each scraper is idempotent on `sourceUrl` — safe to re-run on a schedule. Pass `-- --reset` to wipe that bank's offers and re-import:
@@ -163,6 +196,8 @@ bun scrape:dfcc -- --reset
 ```
 
 People's Bank's image CDN blocks hotlinking, so its scraper downloads images to `/public/uploads/scraped/peoples/` and rewrites the URL to a local path.
+
+For the full state of bank coverage (including HNB, Sampath, BOC, NSB, Pan Asia and why each isn't shipped), see [scripts/SCRAPERS.md](scripts/SCRAPERS.md).
 
 ---
 
@@ -176,6 +211,24 @@ Per PRD rule 2.A, offers past their `endDate` are hidden from the public listing
 ```bash
 curl -X POST -H "x-cron-secret: $CRON_SECRET" \
   https://your-domain/api/cron/expire-offers
+```
+
+A GitHub Actions workflow (`.github/workflows/cron-expire-offers.yml`) hits this endpoint hourly. To enable it, set two repository secrets:
+
+- `CRON_EXPIRE_OFFERS_URL` — e.g. `https://your-domain/api/cron/expire-offers`
+- `CRON_SECRET` — same value as the server `CRON_SECRET` env var
+
+You can also trigger the workflow manually via the Actions tab (workflow_dispatch).
+
+---
+
+## Health
+
+`GET /api/health` returns JSON with app status, DB reachability, and uptime in seconds. Returns 200 when the DB responds, 503 otherwise. Wire it into any uptime monitor or load-balancer health check.
+
+```bash
+curl https://your-domain/api/health
+# { "status": "ok", "db": "ok", "uptime": 42 }
 ```
 
 ---

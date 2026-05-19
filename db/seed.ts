@@ -40,6 +40,10 @@ async function main() {
     { name: "Bank of Ceylon", slug: "boc" },
     { name: "NDB Bank", slug: "ndb" },
     { name: "National Savings Bank", slug: "nsb" },
+    { name: "Nations Trust Bank", slug: "ntb" },
+    { name: "Pan Asia Banking Corporation", slug: "pan-asia" },
+    { name: "DFCC Bank", slug: "dfcc" },
+    { name: "People's Bank", slug: "peoples" },
   ];
   for (const bank of seededBanks) {
     await db.insert(banks).values(bank).onConflictDoNothing({ target: banks.slug });

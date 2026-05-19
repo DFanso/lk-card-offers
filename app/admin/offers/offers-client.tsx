@@ -80,7 +80,7 @@ export function OffersClient({
         of <span className="num text-foreground">{total}</span>
       </div>
 
-      <div className="border border-border bg-card">
+      <div className="hidden border border-border bg-card md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -190,6 +190,74 @@ export function OffersClient({
             )}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="space-y-2 md:hidden">
+        {items.length === 0 ? (
+          <p className="border border-dashed border-border bg-muted/20 p-6 text-center text-xs text-muted-foreground">
+            No offers match.
+          </p>
+        ) : (
+          items.map((offer) => (
+            <article
+              key={offer.id}
+              className="flex gap-3 border border-border bg-card p-3 text-xs"
+            >
+              {offer.imageUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  src={offer.imageUrl}
+                  alt=""
+                  className="h-16 w-20 shrink-0 border border-border object-cover"
+                />
+              ) : (
+                <div className="h-16 w-20 shrink-0 border border-dashed border-border bg-muted/40" />
+              )}
+              <div className="min-w-0 flex-1 space-y-1.5">
+                <div className="flex items-start justify-between gap-2">
+                  <Link
+                    href={`/offers/${offer.id}`}
+                    target="_blank"
+                    className="block truncate font-medium hover:underline"
+                  >
+                    {offer.title}
+                  </Link>
+                  <Badge
+                    variant={statusVariant(offer.status)}
+                    className="shrink-0 text-[10px] uppercase tracking-wider"
+                  >
+                    {offer.status}
+                  </Badge>
+                </div>
+                {offer.merchant && (
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {offer.merchant.name}
+                  </p>
+                )}
+                <p className="num text-[10px] uppercase tracking-wider text-muted-foreground">
+                  {shortDate(offer.startDate)} → {shortDate(offer.endDate)}
+                </p>
+                <div className="flex justify-end gap-1 border-t border-border/60 pt-1.5">
+                  <Link href={`/maintainer/offers/${offer.id}/edit`}>
+                    <Button size="xs" variant="ghost">
+                      Edit
+                    </Button>
+                  </Link>
+                  <Button
+                    size="xs"
+                    variant="ghost"
+                    onClick={() => {
+                      setError(null);
+                      setConfirmOffer(offer);
+                    }}
+                  >
+                    Delete
+                  </Button>
+                </div>
+              </div>
+            </article>
+          ))
+        )}
       </div>
 
       <AlertDialog

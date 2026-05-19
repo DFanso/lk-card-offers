@@ -4,7 +4,7 @@ import { SubmitForm } from "./submit-form";
 export const dynamic = "force-dynamic";
 
 export default async function SubmitPage() {
-  await requireSession();
+  const session = await requireSession();
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <header className="space-y-2">
@@ -17,7 +17,7 @@ export default async function SubmitPage() {
           offers go live on the public catalog.
         </p>
       </header>
-      <SubmitForm />
+      <SubmitForm userId={session.user.id} />
     </div>
   );
 }

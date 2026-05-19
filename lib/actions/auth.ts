@@ -5,12 +5,22 @@ import { eq } from "drizzle-orm";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { registerSchema } from "@/lib/validation/auth";
+import { getRequestIp, rateLimit } from "@/lib/rate-limit";
 
 export type RegisterResult =
   | { ok: true; userId: string }
   | { ok: false; error: string };
 
 export async function registerUser(input: unknown): Promise<RegisterResult> {
+  const ip = await getRequestIp();
+  const limit = rateLimit(`register:${ip}`, 5, 60_000);
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: `Too many sign-up attempts. Try again in ${Math.ceil(limit.retryAfterMs / 1000)}s.`,
+    };
+  }
+
   const parsed = registerSchema.safeParse(input);
   if (!parsed.success) {
     return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
