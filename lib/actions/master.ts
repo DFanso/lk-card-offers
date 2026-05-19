@@ -10,6 +10,7 @@ import {
   merchants,
   offerBanks,
   offerCardTypes,
+  offerSubmissions,
   offers,
 } from "@/db/schema";
 import {
@@ -24,6 +25,26 @@ export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
   | { ok: false; error: string };
 
+async function isReferencedInPendingSubmission(
+  predicate: "bank" | "cardType" | "merchant" | "category",
+  id: string,
+): Promise<boolean> {
+  const idJson = JSON.stringify(id);
+  const matcher =
+    predicate === "bank"
+      ? sql`${offerSubmissions.payload}->'bankIds' @> ${idJson}::jsonb`
+      : predicate === "cardType"
+        ? sql`${offerSubmissions.payload}->'cardTypeIds' @> ${idJson}::jsonb`
+        : predicate === "merchant"
+          ? sql`${offerSubmissions.payload}->>'merchantId' = ${id}`
+          : sql`${offerSubmissions.payload}->>'categoryId' = ${id}`;
+  const rows = await db
+    .select({ count: sql<number>`count(*)::int` })
+    .from(offerSubmissions)
+    .where(and(eq(offerSubmissions.status, "pending_review"), matcher));
+  return (rows[0]?.count ?? 0) > 0;
+}
+
 async function isUsedByActiveOffer(
   predicate: "bank" | "cardType" | "merchant" | "category",
   id: string,
@@ -36,7 +57,8 @@ async function isUsedByActiveOffer(
       .where(
         and(eq(offerBanks.bankId, id), eq(offers.status, "published")),
       );
-    return (rows[0]?.count ?? 0) > 0;
+    if ((rows[0]?.count ?? 0) > 0) return true;
+    return isReferencedInPendingSubmission(predicate, id);
   }
   if (predicate === "cardType") {
     const rows = await db
@@ -46,20 +68,23 @@ async function isUsedByActiveOffer(
       .where(
         and(eq(offerCardTypes.cardTypeId, id), eq(offers.status, "published")),
       );
-    return (rows[0]?.count ?? 0) > 0;
+    if ((rows[0]?.count ?? 0) > 0) return true;
+    return isReferencedInPendingSubmission(predicate, id);
   }
   if (predicate === "merchant") {
     const rows = await db
       .select({ count: sql<number>`count(*)::int` })
       .from(offers)
       .where(and(eq(offers.merchantId, id), eq(offers.status, "published")));
-    return (rows[0]?.count ?? 0) > 0;
+    if ((rows[0]?.count ?? 0) > 0) return true;
+    return isReferencedInPendingSubmission(predicate, id);
   }
   const rows = await db
     .select({ count: sql<number>`count(*)::int` })
     .from(offers)
     .where(and(eq(offers.categoryId, id), eq(offers.status, "published")));
-  return (rows[0]?.count ?? 0) > 0;
+  if ((rows[0]?.count ?? 0) > 0) return true;
+  return isReferencedInPendingSubmission(predicate, id);
 }
 
 // Banks

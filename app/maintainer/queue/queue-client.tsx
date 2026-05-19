@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -15,6 +16,7 @@ import {
 } from "@/components/ui/dialog";
 import {
   approveSubmission,
+  bulkDecide,
   rejectSubmission,
 } from "@/lib/actions/submissions";
 import { useMaintainerQueue, type QueueItem } from "@/lib/queries/admin";
@@ -38,15 +40,33 @@ export function QueueClient() {
   const queryClient = useQueryClient();
   const [pending, startTransition] = useTransition();
   const [openId, setOpenId] = useState<string | null>(null);
+  const [bulkOpen, setBulkOpen] = useState(false);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const [note, setNote] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [bulkSummary, setBulkSummary] = useState<string | null>(null);
 
   const items = queue.data?.items ?? [];
   const open = items.find((i) => i.id === openId) ?? null;
   const openPayload = open ? (open.payload as Partial<OfferInput>) : null;
+  const selectedIds = items.filter((i) => selected.has(i.id)).map((i) => i.id);
+  const allSelected = items.length > 0 && selectedIds.length === items.length;
 
   function refresh() {
     queryClient.invalidateQueries({ queryKey: ["maintainer-queue"] });
+  }
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  }
+  function toggleAll() {
+    if (allSelected) setSelected(new Set());
+    else setSelected(new Set(items.map((i) => i.id)));
   }
 
   function bankNames(ids: string[]) {
@@ -70,6 +90,29 @@ export function QueueClient() {
       }
       setOpenId(null);
       setNote("");
+      refresh();
+    });
+  }
+
+  function decideBulk(action: "approve" | "reject") {
+    if (selectedIds.length === 0) return;
+    setError(null);
+    setBulkSummary(null);
+    startTransition(async () => {
+      const result = await bulkDecide(selectedIds, action, note || undefined);
+      if (!result.ok) {
+        setError(result.error);
+        return;
+      }
+      const s = result.data!;
+      const parts = [`${s.succeeded} ${action === "approve" ? "approved" : "rejected"}`];
+      if (s.skipped) parts.push(`${s.skipped} skipped`);
+      if (s.failed) parts.push(`${s.failed} failed`);
+      setBulkSummary(parts.join(", "));
+      if (s.errors.length) setError(s.errors.join("; "));
+      setSelected(new Set());
+      setNote("");
+      setBulkOpen(false);
       refresh();
     });
   }
@@ -98,6 +141,37 @@ export function QueueClient() {
 
   return (
     <>
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-border pb-3">
+        <label className="flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
+          <Checkbox checked={allSelected} onCheckedChange={() => toggleAll()} />
+          <span>
+            {selectedIds.length > 0
+              ? `${selectedIds.length} of ${items.length} selected`
+              : "Select all"}
+          </span>
+        </label>
+        <div className="flex items-center gap-2">
+          {bulkSummary && (
+            <span className="text-[11px] text-muted-foreground">
+              {bulkSummary}
+            </span>
+          )}
+          <Button
+            size="sm"
+            variant="outline"
+            disabled={selectedIds.length === 0}
+            onClick={() => {
+              setNote("");
+              setError(null);
+              setBulkSummary(null);
+              setBulkOpen(true);
+            }}
+          >
+            Review {selectedIds.length > 0 ? selectedIds.length : ""}
+          </Button>
+        </div>
+      </div>
+
       <div className="grid gap-3">
         {items.map((item, i) => (
           <QueueRow
@@ -106,6 +180,8 @@ export function QueueClient() {
             index={i + 1}
             bankNames={bankNames}
             cardTypeNames={cardTypeNames}
+            selected={selected.has(item.id)}
+            onToggle={() => toggle(item.id)}
             onReview={() => {
               setOpenId(item.id);
               setNote("");
@@ -114,6 +190,42 @@ export function QueueClient() {
           />
         ))}
       </div>
+
+      <Dialog open={bulkOpen} onOpenChange={(o) => !o && setBulkOpen(false)}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Review {selectedIds.length} submissions</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-xs">
+            <p className="text-muted-foreground">
+              The same decision and note will be applied to every selected
+              submission. Rows that are no longer pending are skipped.
+            </p>
+            <Textarea
+              rows={3}
+              placeholder="Shared review note (optional)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+            {error && <p className="text-[11px] text-destructive">{error}</p>}
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setBulkOpen(false)}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              disabled={pending}
+              onClick={() => decideBulk("reject")}
+            >
+              Reject all
+            </Button>
+            <Button disabled={pending} onClick={() => decideBulk("approve")}>
+              Approve all
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={open !== null} onOpenChange={(o) => !o && setOpenId(null)}>
         <DialogContent className="sm:max-w-lg">
@@ -181,12 +293,16 @@ function QueueRow({
   index,
   bankNames,
   cardTypeNames,
+  selected,
+  onToggle,
   onReview,
 }: {
   item: QueueItem;
   index: number;
   bankNames: (ids: string[]) => string[];
   cardTypeNames: (ids: string[]) => string[];
+  selected: boolean;
+  onToggle: () => void;
   onReview: () => void;
 }) {
   const payload = item.payload as Partial<OfferInput>;
@@ -205,23 +321,31 @@ function QueueRow({
         )}
         <div className="flex flex-1 flex-col p-4">
           <div className="flex items-start justify-between gap-2">
-            <div className="min-w-0">
-              <div className="num text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
-                № {index.toString().padStart(3, "0")} ·{" "}
-                {new Date(item.createdAt).toLocaleString()}
+            <div className="flex min-w-0 items-start gap-3">
+              <Checkbox
+                checked={selected}
+                onCheckedChange={() => onToggle()}
+                aria-label="Select submission for bulk review"
+                className="mt-1"
+              />
+              <div className="min-w-0">
+                <div className="num text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                  № {index.toString().padStart(3, "0")} ·{" "}
+                  {new Date(item.createdAt).toLocaleString()}
+                </div>
+                <h3 className="mt-1 truncate text-sm font-medium">
+                  {payload.title ?? "Untitled"}
+                </h3>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Submitted by {item.submittedByName ?? "—"}
+                  {item.submittedByEmail && (
+                    <>
+                      {" · "}
+                      <span>{item.submittedByEmail}</span>
+                    </>
+                  )}
+                </p>
               </div>
-              <h3 className="mt-1 truncate text-sm font-medium">
-                {payload.title ?? "Untitled"}
-              </h3>
-              <p className="mt-1 text-[11px] text-muted-foreground">
-                Submitted by {item.submittedByName ?? "—"}
-                {item.submittedByEmail && (
-                  <>
-                    {" · "}
-                    <span>{item.submittedByEmail}</span>
-                  </>
-                )}
-              </p>
             </div>
             <Badge variant="outline" className="text-[10px] uppercase tracking-wider">
               {item.status}

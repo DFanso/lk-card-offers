@@ -1,9 +1,8 @@
-import { asc } from "drizzle-orm";
-import { db } from "@/db";
-import { users } from "@/db/schema";
+import { listAdminUsers } from "@/lib/queries-server/users";
 import { AuthError, requireRole } from "@/lib/rbac";
+import { userRole, type UserRoleValue } from "@/db/schema";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     await requireRole("super_admin");
   } catch (err) {
@@ -13,16 +12,18 @@ export async function GET() {
     throw err;
   }
 
-  const rows = await db
-    .select({
-      id: users.id,
-      name: users.name,
-      email: users.email,
-      role: users.role,
-      createdAt: users.createdAt,
-    })
-    .from(users)
-    .orderBy(asc(users.createdAt));
+  const url = new URL(req.url);
+  const q = url.searchParams.get("q") ?? undefined;
+  const roleParam = url.searchParams.get("role") ?? undefined;
+  const role = roleParam && (userRole.enumValues as readonly string[]).includes(roleParam)
+    ? (roleParam as UserRoleValue)
+    : undefined;
+  const page = Number(url.searchParams.get("page") ?? "1") || 1;
+  const pageSize = Math.min(
+    100,
+    Math.max(1, Number(url.searchParams.get("pageSize") ?? "25") || 25),
+  );
 
-  return Response.json({ items: rows });
+  const { items, total } = await listAdminUsers({ q, role, page, pageSize });
+  return Response.json({ items, total, page, pageSize });
 }

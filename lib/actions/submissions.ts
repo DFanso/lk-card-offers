@@ -13,10 +13,26 @@ import {
 import { submissionInputSchema, type SubmissionInput } from "@/lib/validation/offer";
 import { requireRole, requireSession } from "@/lib/rbac";
 import { resolveMerchantId } from "@/lib/actions/merchants-resolve";
+import { rateLimit } from "@/lib/rate-limit";
 
 export type ActionResult<T = undefined> =
   | { ok: true; data?: T }
-  | { ok: false; error: string };
+  | {
+      ok: false;
+      error: string;
+      fieldErrors?: Record<string, string[]>;
+    };
+
+function zodFieldErrors(
+  issues: { path: PropertyKey[]; message: string }[],
+): Record<string, string[]> {
+  const out: Record<string, string[]> = {};
+  for (const issue of issues) {
+    const key = issue.path.map((p) => String(p)).join(".") || "_";
+    (out[key] ??= []).push(issue.message);
+  }
+  return out;
+}
 
 export async function submitOffer(
   input: SubmissionInput,
@@ -27,9 +43,20 @@ export async function submitOffer(
   } catch {
     return { ok: false, error: "Unauthorized" };
   }
+  const limit = rateLimit(`submit:${session.user.id}`, 10, 60 * 60_000);
+  if (!limit.ok) {
+    return {
+      ok: false,
+      error: `Submission cap reached. Try again in ${Math.ceil(limit.retryAfterMs / 60_000)} min.`,
+    };
+  }
   const parsed = submissionInputSchema.safeParse(input);
   if (!parsed.success) {
-    return { ok: false, error: parsed.error.issues[0]?.message ?? "Invalid input" };
+    return {
+      ok: false,
+      error: parsed.error.issues[0]?.message ?? "Invalid input",
+      fieldErrors: zodFieldErrors(parsed.error.issues),
+    };
   }
   const inserted = await db
     .insert(offerSubmissions)
@@ -128,6 +155,7 @@ export async function approveSubmission(
     .where(eq(offerSubmissions.id, submissionId));
 
   revalidatePath("/maintainer/queue");
+  revalidatePath("/");
   revalidatePath("/offers");
   return { ok: true, data: { offerId } };
 }
@@ -155,4 +183,54 @@ export async function rejectSubmission(
 
   revalidatePath("/maintainer/queue");
   return { ok: true };
+}
+
+export type BulkDecisionSummary = {
+  attempted: number;
+  succeeded: number;
+  skipped: number;
+  failed: number;
+  errors: string[];
+};
+
+export async function bulkDecide(
+  submissionIds: string[],
+  action: "approve" | "reject",
+  note?: string,
+): Promise<ActionResult<BulkDecisionSummary>> {
+  try {
+    await requireRole("maintainer");
+  } catch {
+    return { ok: false, error: "Forbidden" };
+  }
+  const summary: BulkDecisionSummary = {
+    attempted: submissionIds.length,
+    succeeded: 0,
+    skipped: 0,
+    failed: 0,
+    errors: [],
+  };
+
+  for (const id of submissionIds) {
+    const found = await db
+      .select({ status: offerSubmissions.status })
+      .from(offerSubmissions)
+      .where(eq(offerSubmissions.id, id))
+      .limit(1);
+    if (!found[0] || found[0].status !== "pending_review") {
+      summary.skipped++;
+      continue;
+    }
+    const result =
+      action === "approve"
+        ? await approveSubmission(id, note)
+        : await rejectSubmission(id, note);
+    if (result.ok) summary.succeeded++;
+    else {
+      summary.failed++;
+      summary.errors.push(`${id.slice(0, 8)}: ${result.error}`);
+    }
+  }
+
+  return { ok: true, data: summary };
 }

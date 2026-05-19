@@ -6,6 +6,7 @@ import { roleAtLeast } from "@/lib/rbac";
 import { NavLinks, type NavItem } from "@/components/site/nav-links";
 import { MobileNav } from "@/components/site/mobile-nav";
 import { AccountMenu } from "@/components/site/account-menu";
+import { ThemeToggle } from "@/components/site/theme-toggle";
 
 export async function SiteHeader() {
   const session = await auth();
@@ -39,7 +40,7 @@ export async function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80">
-      <div className="mx-auto flex h-7 w-full items-center justify-between gap-3 px-4 sm:px-6 lg:px-10 2xl:px-14 text-[10px] uppercase tracking-[0.18em] sm:tracking-[0.22em] text-muted-foreground">
+      <div className="mx-auto flex h-7 w-full max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-6 lg:px-10 text-[10px] uppercase tracking-[0.18em] sm:tracking-[0.22em] text-muted-foreground">
         <div className="flex min-w-0 items-center gap-3 truncate">
           <span className="num shrink-0">{stamp}</span>
           <span aria-hidden className="hidden sm:inline">·</span>
@@ -53,7 +54,7 @@ export async function SiteHeader() {
         </div>
       </div>
       <Separator />
-      <div className="relative mx-auto flex h-14 w-full items-center justify-between gap-3 px-4 sm:px-6 sm:gap-6 lg:px-10 2xl:px-14">
+      <div className="relative mx-auto flex h-14 w-full max-w-[1440px] items-center justify-between gap-3 px-4 sm:px-6 sm:gap-6 lg:px-10">
         <div className="flex min-w-0 items-center gap-8">
           <Link href="/" className="flex items-baseline gap-3">
             <span className="text-base sm:text-lg font-semibold tracking-[-0.01em] text-foreground whitespace-nowrap">
@@ -63,6 +64,7 @@ export async function SiteHeader() {
           <NavLinks items={navItems} />
         </div>
         <div className="flex items-center gap-2">
+          <ThemeToggle />
           {session?.user ? (
             <AccountMenu
               name={session.user.name ?? "Account"}

@@ -134,6 +134,7 @@ cp .env.example .env
 bun db:create     # creates the database if it doesn't exist
 bun db:migrate    # applies migrations from db/migrations
 bun db:seed       # super admin + 6 banks, 5 card types, 6 categories, sample offers
+bun db:seed:dev   # (optional, local dev) ~17 sample offers + maintainer@/user@ test accounts
 ```
 
 ### 4. Run the dev server
@@ -176,6 +177,17 @@ Per PRD rule 2.A, offers past their `endDate` are hidden from the public listing
 ```bash
 curl -X POST -H "x-cron-secret: $CRON_SECRET" \
   https://your-domain/api/cron/expire-offers
+```
+
+---
+
+## Health
+
+`GET /api/health` returns JSON with app status, DB reachability, and uptime in seconds. Returns 200 when the DB responds, 503 otherwise. Wire it into any uptime monitor or load-balancer health check.
+
+```bash
+curl https://your-domain/api/health
+# { "status": "ok", "db": "ok", "uptime": 42 }
 ```
 
 ---
