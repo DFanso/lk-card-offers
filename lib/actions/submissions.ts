@@ -128,6 +128,7 @@ export async function approveSubmission(
     .where(eq(offerSubmissions.id, submissionId));
 
   revalidatePath("/maintainer/queue");
+  revalidatePath("/");
   revalidatePath("/offers");
   return { ok: true, data: { offerId } };
 }

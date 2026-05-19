@@ -83,6 +83,7 @@ export async function createOffer(
   const offerId = inserted[0].id;
   await setOfferLinks(offerId, data.bankIds, data.cardTypeIds);
 
+  revalidatePath("/");
   revalidatePath("/offers");
   revalidatePath("/maintainer");
   return { ok: true, data: { id: offerId } };
@@ -132,6 +133,7 @@ export async function updateOffer(
 
   await setOfferLinks(offerId, data.bankIds, data.cardTypeIds);
 
+  revalidatePath("/");
   revalidatePath("/offers");
   revalidatePath(`/offers/${offerId}`);
   revalidatePath("/maintainer");
@@ -145,7 +147,9 @@ export async function deleteOffer(offerId: string): Promise<ActionResult> {
     return { ok: false, error: "Forbidden" };
   }
   await db.delete(offers).where(eq(offers.id, offerId));
+  revalidatePath("/");
   revalidatePath("/offers");
+  revalidatePath(`/offers/${offerId}`);
   return { ok: true };
 }
 

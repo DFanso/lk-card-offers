@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Disclaimer } from "@/components/site/disclaimer";
 
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 const SEVEN_DAYS_MS = 7 * 86400000;
 

@@ -15,7 +15,8 @@
     "db:seed": "tsx db/seed.ts",
     "scrape:dfcc": "tsx scripts/scrape-dfcc.ts",
     "scrape:combank": "tsx scripts/scrape-combank.ts",
-    "scrape:peoples": "tsx scripts/scrape-peoples.ts"
+    "scrape:peoples": "tsx scripts/scrape-peoples.ts",
+    "uploads:prune": "tsx scripts/prune-uploads.ts"
   },
   "dependencies": {
     "@auth/core": "^0.34.3",

@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { getOfferById } from "@/lib/queries-server/offers";
@@ -5,6 +6,56 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Disclaimer } from "@/components/site/disclaimer";
+
+export const revalidate = 300;
+
+function siteUrl() {
+  return (
+    process.env.NEXTAUTH_URL?.replace(/\/$/, "") ?? "http://localhost:3000"
+  );
+}
+
+export async function generateMetadata({
+  params,
+}: {
+  params: Promise<{ id: string }>;
+}): Promise<Metadata> {
+  const { id } = await params;
+  const offer = await getOfferById(id);
+  if (!offer) return { title: "Offer not found" };
+
+  const todayStr = new Date().toISOString().slice(0, 10);
+  if (offer.status !== "published" || offer.endDate < todayStr) {
+    return { title: "Offer not found" };
+  }
+
+  const description = offer.description.slice(0, 200).replace(/\s+/g, " ");
+  const title = `${offer.title} · ${offer.merchant?.name ?? "LK Card Offers"}`;
+  const ogImage = offer.imageUrl
+    ? offer.imageUrl.startsWith("http")
+      ? offer.imageUrl
+      : `${siteUrl()}${offer.imageUrl}`
+    : `${siteUrl()}/og-default.png`;
+
+  return {
+    title,
+    description,
+    alternates: { canonical: `${siteUrl()}/offers/${offer.id}` },
+    openGraph: {
+      type: "article",
+      title,
+      description,
+      url: `${siteUrl()}/offers/${offer.id}`,
+      images: [{ url: ogImage }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
+      images: [ogImage],
+    },
+  };
+}
 
 function formatDate(d: string) {
   return new Date(d)
