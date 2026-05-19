@@ -14,6 +14,14 @@ function daysLeft(end: string) {
   return days;
 }
 
+function hashHue(id: string) {
+  let h = 0;
+  for (let i = 0; i < id.length; i++) {
+    h = (h * 31 + id.charCodeAt(i)) | 0;
+  }
+  return Math.abs(h) % 360;
+}
+
 export function OfferCard({
   offer,
   index,
@@ -33,7 +41,7 @@ export function OfferCard({
         </span>
       </div>
 
-      {offer.imageUrl && (
+      {offer.imageUrl ? (
         <Link
           href={`/offers/${offer.id}`}
           className="relative block border-b border-border"
@@ -46,6 +54,21 @@ export function OfferCard({
             loading="lazy"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/30 via-transparent to-transparent" />
+        </Link>
+      ) : (
+        <Link
+          href={`/offers/${offer.id}`}
+          className="relative block aspect-[16/9] w-full overflow-hidden border-b border-border"
+          aria-label={offer.title}
+          style={{
+            background: `linear-gradient(135deg, hsl(${hashHue(offer.id)} 35% 28%) 0%, hsl(${(hashHue(offer.id) + 40) % 360} 30% 18%) 100%)`,
+          }}
+        >
+          <div className="absolute inset-0 opacity-[0.12] [background-image:repeating-linear-gradient(0deg,transparent_0,transparent_11px,rgba(255,255,255,0.6)_11px,rgba(255,255,255,0.6)_12px)]" />
+          <div className="absolute bottom-2 left-3 right-3 flex items-end justify-between text-[10px] uppercase tracking-[0.22em] text-white/70 num">
+            <span>{(offer.merchant?.name ?? "offer").slice(0, 24)}</span>
+            <span>№ {offer.id.slice(0, 6)}</span>
+          </div>
         </Link>
       )}
 
