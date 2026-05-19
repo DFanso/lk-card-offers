@@ -19,6 +19,7 @@
     "scrape:dfcc": "tsx scripts/scrape-dfcc.ts",
     "scrape:combank": "tsx scripts/scrape-combank.ts",
     "scrape:peoples": "tsx scripts/scrape-peoples.ts",
+    "scrape:ndb": "tsx scripts/scrape-ndb.ts",
     "uploads:prune": "tsx scripts/prune-uploads.ts",
     "merchants:normalize": "tsx scripts/normalize-merchants.ts"
   },
