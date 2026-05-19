@@ -28,10 +28,13 @@ fi
 
 # Parse host + port from DATABASE_URL to gate readiness on a TCP connection.
 # `bun -e` is already in the image, so we use it as the URL parser.
+# `|| true` because `read` returns non-zero when its input has no trailing
+# newline — that's fine, we still got the values, but `set -e` would otherwise
+# kill the script before any log line fires.
 read -r DB_HOST DB_PORT < <(bun -e '
   const u = new URL(process.env.DATABASE_URL);
-  process.stdout.write(`${u.hostname} ${u.port || 5432}`);
-')
+  console.log(`${u.hostname} ${u.port || 5432}`);
+') || true
 
 log "waiting for postgres at ${DB_HOST}:${DB_PORT}…"
 WAIT_TIMEOUT=${DB_WAIT_TIMEOUT:-60}
@@ -51,17 +54,21 @@ until bun -e "
 done
 log "postgres is reachable"
 
+# Call the TS entry points with Bun directly instead of via the package
+# scripts. The package scripts use `tsx`, but inside this Bun image tsx fails
+# to resolve its own CJS shim. Bun runs TypeScript natively, so this is both
+# simpler and faster than re-introducing tsx.
 log "ensuring database exists…"
-bun run db:create
+bun db/create-database.ts
 
 log "applying migrations…"
-bun run db:migrate
+bunx drizzle-kit migrate
 
 if [ "${SKIP_SEED:-0}" = "1" ]; then
   log "SKIP_SEED=1 — skipping seed"
 else
   log "seeding reference data + super admin…"
-  bun run db:seed
+  bun db/seed.ts
 fi
 
 log "starting app: $*"
