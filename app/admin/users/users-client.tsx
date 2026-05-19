@@ -63,7 +63,7 @@ export function UsersClient({
           {error}
         </div>
       )}
-      <div className="border border-border bg-card">
+      <div className="hidden border border-border bg-card md:block">
         <Table>
           <TableHeader>
             <TableRow>
@@ -118,6 +118,69 @@ export function UsersClient({
             ))}
           </TableBody>
         </Table>
+      </div>
+
+      <div className="space-y-2 md:hidden">
+        {initial.length === 0 ? (
+          <p className="border border-dashed border-border bg-muted/20 p-6 text-center text-xs text-muted-foreground">
+            No users match.
+          </p>
+        ) : (
+          initial.map((u) => (
+            <article
+              key={u.id}
+              className="space-y-2 border border-border bg-card px-3 py-3 text-xs"
+            >
+              <div className="flex items-start justify-between gap-2">
+                <div className="min-w-0 space-y-1">
+                  <p className="truncate font-medium">
+                    {u.name}
+                    {u.id === currentUserId && (
+                      <Badge
+                        variant="outline"
+                        className="ml-2 text-[10px] uppercase"
+                      >
+                        you
+                      </Badge>
+                    )}
+                  </p>
+                  <p className="truncate text-[11px] text-muted-foreground">
+                    {u.email}
+                  </p>
+                  <p className="num text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+                    Joined {new Date(u.createdAt).toLocaleDateString()}
+                  </p>
+                </div>
+                <Badge
+                  variant="secondary"
+                  className="shrink-0 text-[10px] uppercase tracking-wider"
+                >
+                  {u.role}
+                </Badge>
+              </div>
+              <div className="border-t border-border/60 pt-2">
+                <Select
+                  value={u.role}
+                  onValueChange={(v) =>
+                    v && handleChange(u.id, v as UserRoleValue)
+                  }
+                  disabled={pending || u.id === currentUserId}
+                >
+                  <SelectTrigger size="sm" className="w-full">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROLES.map((r) => (
+                      <SelectItem key={r.value} value={r.value}>
+                        {r.label}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </article>
+          ))
+        )}
       </div>
     </div>
   );
