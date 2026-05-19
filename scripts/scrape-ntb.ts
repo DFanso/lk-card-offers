@@ -141,8 +141,10 @@ function parseBucketDetail(
     const offerText = $(cells[1]).text().replace(/\s+/g, " ").trim();
     const eligibilityText = $(cells[2]).text().replace(/\s+/g, " ").trim();
     if (!merchantRaw || !offerText) return;
-    // Header row uses <h3><strong>Merchant</strong></h3>; skip if cell 0 == "Merchant"
-    if (/^merchant$/i.test(merchantRaw)) return;
+    // Header row uses <h3><strong>Merchant</strong></h3>; skip the header
+    // and obvious data noise (offer cell mostly empty, merchant cell duplicates the header word, etc).
+    if (/^merchants?(?:\s+name)?$/i.test(merchantRaw)) return;
+    if (/^offer$/i.test(offerText) || /^eligibility$/i.test(eligibilityText)) return;
     rows.push({ merchantName: merchantRaw, offerText, eligibilityText });
   });
 
