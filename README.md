@@ -134,6 +134,7 @@ cp .env.example .env
 bun db:create     # creates the database if it doesn't exist
 bun db:migrate    # applies migrations from db/migrations
 bun db:seed       # super admin + 6 banks, 5 card types, 6 categories, sample offers
+bun db:seed:dev   # (optional, local dev) ~17 sample offers + maintainer@/user@ test accounts
 ```
 
 ### 4. Run the dev server

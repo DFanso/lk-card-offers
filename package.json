@@ -13,6 +13,7 @@
     "db:push": "drizzle-kit push",
     "db:studio": "drizzle-kit studio",
     "db:seed": "tsx db/seed.ts",
+    "db:seed:dev": "tsx db/seed-dev.ts",
     "scrape:dfcc": "tsx scripts/scrape-dfcc.ts",
     "scrape:combank": "tsx scripts/scrape-combank.ts",
     "scrape:peoples": "tsx scripts/scrape-peoples.ts",

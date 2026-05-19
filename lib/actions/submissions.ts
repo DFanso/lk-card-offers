@@ -157,3 +157,53 @@ export async function rejectSubmission(
   revalidatePath("/maintainer/queue");
   return { ok: true };
 }
+
+export type BulkDecisionSummary = {
+  attempted: number;
+  succeeded: number;
+  skipped: number;
+  failed: number;
+  errors: string[];
+};
+
+export async function bulkDecide(
+  submissionIds: string[],
+  action: "approve" | "reject",
+  note?: string,
+): Promise<ActionResult<BulkDecisionSummary>> {
+  try {
+    await requireRole("maintainer");
+  } catch {
+    return { ok: false, error: "Forbidden" };
+  }
+  const summary: BulkDecisionSummary = {
+    attempted: submissionIds.length,
+    succeeded: 0,
+    skipped: 0,
+    failed: 0,
+    errors: [],
+  };
+
+  for (const id of submissionIds) {
+    const found = await db
+      .select({ status: offerSubmissions.status })
+      .from(offerSubmissions)
+      .where(eq(offerSubmissions.id, id))
+      .limit(1);
+    if (!found[0] || found[0].status !== "pending_review") {
+      summary.skipped++;
+      continue;
+    }
+    const result =
+      action === "approve"
+        ? await approveSubmission(id, note)
+        : await rejectSubmission(id, note);
+    if (result.ok) summary.succeeded++;
+    else {
+      summary.failed++;
+      summary.errors.push(`${id.slice(0, 8)}: ${result.error}`);
+    }
+  }
+
+  return { ok: true, data: summary };
+}
