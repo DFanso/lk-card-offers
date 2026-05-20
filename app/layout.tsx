@@ -7,13 +7,43 @@ const jetbrainsMono = JetBrains_Mono({
   subsets: ["latin"],
 });
 
+// Resolve the public origin once. NEXTAUTH_URL is already the canonical
+// site URL across the app (sitemap, robots, offer detail pages). When
+// metadataBase is set, Next.js rewrites every relative URL in the
+// metadata tree (including the file-convention opengraph-image) into an
+// absolute URL — which is what Facebook/LinkedIn/Twitter/Discord/iMessage
+// require to actually fetch and render the preview image.
+const SITE_URL =
+  process.env.NEXTAUTH_URL?.replace(/\/$/, "") ?? "http://localhost:3000";
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: "LK Card Offers",
     template: "%s · LK Card Offers",
   },
-  description: "Discover credit & debit card offers from Sri Lankan banks.",
+  description:
+    "A community-curated catalog of valid credit & debit card promotions from Sri Lankan banks. Filter by bank, card, and category.",
   applicationName: "LK Card Offers",
+  openGraph: {
+    type: "website",
+    siteName: "LK Card Offers",
+    locale: "en_US",
+    url: "/",
+    title: "LK Card Offers",
+    description:
+      "A community-curated catalog of valid credit & debit card promotions from Sri Lankan banks. Filter by bank, card, and category.",
+    // og:image is auto-attached from app/opengraph-image.png by the
+    // Next.js file convention. Listing it explicitly here ensures the
+    // image:type/width/height tags get emitted alongside og:image even
+    // when nested routes override `openGraph`.
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "LK Card Offers",
+    description:
+      "A community-curated catalog of valid credit & debit card promotions from Sri Lankan banks.",
+  },
 };
 
 export const viewport: Viewport = {
