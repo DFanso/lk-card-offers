@@ -21,6 +21,7 @@
     "scrape:peoples": "bun scripts/scrape-peoples.ts",
     "scrape:ndb": "bun scripts/scrape-ndb.ts",
     "scrape:ntb": "bun scripts/scrape-ntb.ts",
+    "scrape:hnb": "bun scripts/scrape-hnb.ts",
     "uploads:prune": "bun scripts/prune-uploads.ts",
     "merchants:normalize": "bun scripts/normalize-merchants.ts",
     "banks:dedupe": "bun scripts/dedupe-banks.ts"

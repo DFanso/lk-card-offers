@@ -11,15 +11,11 @@ This catalog imports offers from Sri Lankan banks via one-shot scripts under `sc
 | People's Bank | `bun scrape:peoples` | `peoplesbank.lk/special-offers`                               | ~145 offers, downloads images locally (CDN blocks hotlinking)         |
 | NDB           | `bun scrape:ndb`     | `ndbbank.com/cards/card-offers/{category}`                    | 8 category pages, Bootstrap-rendered SSR — `.card.offer-card` per offer |
 | Nations Trust | `bun scrape:ntb`     | `nationstrust.com/promotions` + per-bucket detail pages       | Listing has ~20 buckets; each bucket detail page contains a `.saving-rate-table` with one merchant per `<tr>`. One DB offer per merchant row. |
+| HNB           | `bun scrape:hnb`     | JSON API at `venus.hnb.lk/api/get_all_web_card_promos`        | ~845 offers in one request (`?limit=2000`). Images hotlinked from `assets.hnb.lk/atdi/`. No category info in the API — assigned via title-keyword heuristic. |
 
 ## Blocked banks (investigated, not shippable without extra infra)
 
 Investigation summary for everything that was requested but couldn't ship:
-
-### HNB — JS-rendered SPA
-- URL: `https://www.hnb.lk/` (the `.net` host doesn't resolve)
-- The page is a React SPA; the initial HTML is `<div id="root"></div>` with no offer data. All content is fetched client-side.
-- **Needs**: headless browser (Playwright/Puppeteer) — same category of work as issue #16.
 
 ### Sampath — Nuxt SSR but offer data is post-hydration
 - URL: `https://www.sampath.lk/sampath-cards/credit-card-offer`

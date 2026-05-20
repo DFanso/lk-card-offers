@@ -191,6 +191,7 @@ bun run scrape:ntb
 bun run scrape:dfcc
 bun run scrape:combank
 bun run scrape:peoples
+bun run scrape:hnb
 bun run merchants:normalize
 bun run uploads:prune
 bun run banks:dedupe         # one-off: merge dupe bank rows (e.g. peoples/peoples-bank)
@@ -209,6 +210,7 @@ bun run banks:dedupe         # one-off: merge dupe bank rows (e.g. peoples/peopl
 | `20 */6 * * *`   | DFCC (`scrape-dfcc`)            |
 | `30 */6 * * *`   | Commercial Bank (`scrape-combank`) |
 | `40 */6 * * *`   | People's Bank (`scrape-peoples`)|
+| `50 */6 * * *`   | HNB (`scrape-hnb`)              |
 
 Enable it by setting two repository secrets:
 
@@ -231,6 +233,7 @@ bun scrape:combank       # ~25 offers from combank.lk/rewards-promotions
 bun scrape:peoples       # ~145 offers from peoplesbank.lk/special-offers
 bun scrape:ndb           # NDB Bank — paginated by category at /cards/card-offers/{category}
 bun scrape:ntb           # Nations Trust Bank — one DB offer per merchant row on each /promotions bucket page
+bun scrape:hnb           # HNB Bank — JSON API at venus.hnb.lk (~850 offers, the biggest catalog)
 ```
 
 Each scraper is idempotent on `sourceUrl` — safe to re-run on a schedule. Pass `-- --reset` to wipe that bank's offers and re-import:
@@ -239,9 +242,9 @@ Each scraper is idempotent on `sourceUrl` — safe to re-run on a schedule. Pass
 bun scrape:dfcc -- --reset
 ```
 
-People's Bank's image CDN blocks hotlinking, so its scraper downloads images to `/public/uploads/scraped/peoples/` and rewrites the URL to a local path.
+People's Bank's image CDN blocks hotlinking, so its scraper downloads images to `/public/uploads/scraped/peoples/` and rewrites the URL to a local path. HNB images hotlink directly off `assets.hnb.lk` (S3), no download needed.
 
-For the full state of bank coverage (including HNB, Sampath, BOC, NSB, Pan Asia and why each isn't shipped), see [scripts/SCRAPERS.md](scripts/SCRAPERS.md).
+For the full state of bank coverage (including Sampath, BOC, NSB, Pan Asia and why each isn't shipped), see [scripts/SCRAPERS.md](scripts/SCRAPERS.md).
 
 ---
 
