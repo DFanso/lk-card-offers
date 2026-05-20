@@ -13,30 +13,68 @@ This catalog imports offers from Sri Lankan banks via one-shot scripts under `sc
 | Nations Trust | `bun scrape:ntb`     | `nationstrust.com/promotions` + per-bucket detail pages       | Listing has ~20 buckets; each bucket detail page contains a `.saving-rate-table` with one merchant per `<tr>`. One DB offer per merchant row. |
 | HNB           | `bun scrape:hnb`     | JSON API at `venus.hnb.lk/api/get_all_web_card_promos`        | ~845 offers in one request (`?limit=2000`). Images hotlinked from `assets.hnb.lk/atdi/`. No category info in the API — assigned via title-keyword heuristic. |
 | mypromo.lk    | `bun scrape:mypromo` | `mypromo.lk/promotions/morecatpromos` (paginated HTML chunks) | ~80 distinct promos across 11 category pages. Aggregator covering banks we can't reach directly (Amana, BOC, Sampath, HSBC, Citi, Seylan, etc.). Each detail page exposes JSON-LD `Offer` schema with title/image/dates/merchant. Bank affiliation is regex-extracted from the title — most titles don't pin a bank, so those offers attach to the synthetic catch-all bank `mypromo-any` ("Any bank (mypromo)"). Cross-source dedup (`findContentDuplicate` in `_shared.ts`) skips offers we already have from first-party scrapers via fuzzy title + merchant + endDate match. Images hotlinked from `mypromo.azureedge.net`. |
+| Seylan        | `bun scrape:seylan`  | `seylan.lk/promotions/cards/{category}?page=N`                 | ~155 offers across 22 categories. Each listing card has a flyer + `<h5>` merchant name + a direct detail-page URL (`seylan.lk/<merchant-slug>-N`). Detail page carries the validity text ("Valid from 07th May - 30th June 2026") and card-kind mentions. Per-merchant detail page is one DB offer. Pagination via `?page=N` until the listing returns no `.promotion-item` divs. |
 
 ## Blocked banks (investigated, not shippable without extra infra)
 
 Investigation summary for everything that was requested but couldn't ship:
 
-### Sampath — Nuxt SSR but offer data is post-hydration
+### Sampath — Nuxt SSR with minified inline payload
 - URL: `https://www.sampath.lk/sampath-cards/credit-card-offer`
-- The page is rendered server-side by Nuxt, but the offer cards are populated client-side via XHR. The category list is exposed at `/api/offer-catergories` and the page metadata at `/api/card-offers-page`, but the actual offer-list endpoint is not discoverable by static bundle analysis (we tried `/api/credit-card-offer`, `/api/card-offer-block`, `/api/credit-card-offers?pagination[…]=…`, etc — all 404). Direct detail URLs `/sampath-cards/credit-card-offer/:id` return 500.
-- **Needs**: open the page in DevTools, observe the Network panel to capture the real fetch URL, then write a JSON-based scraper. Should be 30–60 min once the endpoint is known. Alternatively, headless browser.
+- The page is rendered server-side by Nuxt. The full offer payload IS embedded in the HTML inside a `window.__NUXT__=(function(a,b,c,...)` IIFE — every variable is single-letter, every string is referenced by position. Extracting offers requires either (a) reverse-engineering the IIFE arg ordering for each release (brittle), or (b) running the IIFE in V8 and reading the resulting object (effectively a headless eval). Strapi-style API guesses (`/api/credit-card-offers`, `/api/card-offers`, `/api/offers`, etc., with and without `?populate=*`) all return 404; only `/api/uploads/*` for static images works.
+- **Needs**: headless browser, or a sandboxed JS eval of the inline payload. ~3-6 hours of work either way.
 
-### BOC — CloudFront WAF block
+### BOC — CloudFront WAF block (re-confirmed 2026-05)
 - URL: `https://www.boc.lk/`
-- Returns HTTP 403 from CloudFront on every request from our IP, regardless of User-Agent or full browser headers. The WAF likely fingerprints non-Sri Lankan IPs or non-browser clients.
-- **Needs**: either a residential SG/LK proxy, or a headless browser session that survives the WAF challenge. Same severity as #16.
+- Still HTTP 403 from CloudFront on every URL, on every UA. Their WAF fingerprints non-residential IPs.
+- **Needs**: residential SG/LK proxy, or a headless browser session that solves the WAF challenge.
 
 ### NSB — no public promo pages
 - URL: `https://www.nsb.lk/`
-- NSB is primarily a savings bank. Their sitemap lists ~196 URLs, none mention card promotions or merchant offers. We tried `/promotions`, `/offers`, `/card-offers`, `/credit-card-offers`, `/merchant-discounts`, `/discounts`, `/atm-card-offers` — all 404. They publish a master card application PDF from 2018 and that's it.
+- NSB is primarily a savings bank. Their sitemap lists ~196 URLs, none mention card promotions or merchant offers. We tried `/promotions`, `/offers`, `/card-offers`, `/credit-card-offers`, `/merchant-discounts`, `/discounts`, `/atm-card-offers` — all 404.
 - **Decision**: leave out of the scraper set. If NSB launches a card-promotion section in the future, revisit.
 
 ### Pan Asia (PABC) — Sucuri Cloudproxy JS challenge
 - URL: `https://www.pabcbank.com/`
-- Every HTML page returns a 307 to a Sucuri challenge page that sets a cookie via JavaScript and reloads. `curl` can't satisfy this. Their sitemap (`/sitemap.xml`, `/page-sitemap.xml`, `/post-sitemap.xml`) and image URLs are accessible because Sucuri doesn't gate XML, but the sitemap doesn't include any `/promotions`, `/offers`, or `/cards-promotions` page — Pan Asia surfaces offers via a homepage carousel only, which isn't accessible without solving the challenge.
-- **Needs**: headless browser session that can solve the Sucuri challenge. Same severity as BOC and HNB.
+- Every HTML page returns a 307 to a Sucuri challenge page that sets a cookie via JavaScript and reloads. `curl` can't satisfy this. Their sitemap is accessible but doesn't include any `/promotions` page — Pan Asia surfaces offers via a homepage carousel only, which isn't accessible without solving the challenge.
+- **Needs**: headless browser session that can solve the Sucuri challenge.
+
+### HSBC — bank exited Sri Lanka
+- URL: `https://www.hsbc.lk/credit-cards/offers/` → 301 to `/announcements/goodbye/`.
+- HSBC has shut down their Sri Lanka retail-banking operation; the cards business no longer exists. Nothing to scrape.
+- **Decision**: permanent removal from the candidate list.
+
+### Amana Bank — promotions are PDFs
+- URL: `https://www.amanabank.lk/promotions/`
+- The promotions index lists PDF flyers (`/pdf/promotions/new-born-promo.pdf`, etc.) rather than HTML pages. PDF parsing is heavy and the extracted text is unreliable.
+- **Decision**: skip unless we add a PDF-extraction pipeline.
+
+### Cargills Bank — image-only flyers, no text
+- URL: `https://www.cargillsbank.com/products/cargills-bank-cards-promotions/`
+- The single product page hosts ~28 promo JPGs in `wp-content/uploads/2018/04/` — all with empty `alt`, no `<h2>`/`<h3>` headings, no validity text in the markup. The flyer image itself contains every detail of the offer.
+- **Needs**: OCR pipeline. Otherwise the only extractable signal is filename slugs ("KFC-EDM-1-1", "Banana-Bunks-Kandy") which aren't enough.
+
+### Union Bank — site near-empty
+- URL: `https://www.unionb.com/`
+- Returns a 959-byte placeholder homepage with no promo section, no sitemap, no card listings.
+- **Decision**: skip until the site is rebuilt.
+
+## Alternative aggregator sites investigated (2026-05)
+
+After building the mypromo.lk scraper, audited every other site that lists Sri Lankan bank card promotions, looking for additional coverage of the blocked banks (BOC, Sampath, Pan Asia, Union, etc.). Conclusion: **mypromo.lk is the only viable aggregator currently active**. The rest are catalogued here so we don't repeat the exercise:
+
+| Site | Probe result | Reason to skip |
+|---|---|---|
+| `anycardoffers.com` | WordPress + HivePress. `wp-json` locked down; `/hp_listing-sitemap.xml` exposes the full inventory. | **22 offers total, last `lastmod` Sep 2025** — site is effectively abandoned. |
+| `deals4me.lk` | `/sitemap.xml` is corrupted (populated with `dailymirror.lk` news URLs, not their own pages). Bank pages render only modal chrome. | Site is abandoned. |
+| `creditcardoffers.lk` | React SPA. Backend is AWS API Gateway: `*.execute-api.us-east-1.amazonaws.com/{demo,qa}/...`. `insight.creditcardoffers.lk/api/v1/openapi.json` is a separate FastAPI analytics backend (only impression/insight endpoints, no offer data). | The data API DNS didn't resolve from our test environment — would need to be probed from the deployment container to know if it's usable. |
+| `daraz.lk/wow/i/lk/campaigns/{bank-name}` | Loads fine (no JS gate), substantial markup. Has campaign pages for BOC, Union, Commercial, NDB, HNB, HSBC, Citi, Amex. | These are **Daraz-only** discounts ("10% off at Daraz with your Union Bank card") — fundamentally a different category from merchant offers. Would dilute the catalog without a UI distinction. |
+| `yamu.lk/discounts` | All `/discounts`, `/deals` paths return 404. | Their card-deal coverage migrated to the **Coffer** mobile app, which isn't scrapeable. |
+| `loyalty.sampathbank.lk/Ultrarewards/specialOffers` | Renders chrome only; offer list loads via JS. | Same blocker as the main Sampath site. |
+| `rewardzplus.boc.lk` | Connection refused / no response. | Subdomain offline or geo-blocked, same as `boc.lk` apex. |
+| `promo.lk`, `thepromo.lk` | DNS does not resolve. | Domain parked/offline. |
+
+If a new aggregator pops up later, the playbook is in `scripts/scrape-mypromo.ts` — most are WordPress or ASP.NET sites with paginated AJAX endpoints; the JSON-LD `Offer` schema is the right thing to parse when it's present.
 
 ## Adding a new scraper
 

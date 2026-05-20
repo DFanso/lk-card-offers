@@ -23,6 +23,7 @@
     "scrape:ntb": "bun scripts/scrape-ntb.ts",
     "scrape:hnb": "bun scripts/scrape-hnb.ts",
     "scrape:mypromo": "bun scripts/scrape-mypromo.ts",
+    "scrape:seylan": "bun scripts/scrape-seylan.ts",
     "uploads:prune": "bun scripts/prune-uploads.ts",
     "merchants:normalize": "bun scripts/normalize-merchants.ts",
     "banks:dedupe": "bun scripts/dedupe-banks.ts"

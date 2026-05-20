@@ -17,7 +17,7 @@
 import { spawn } from "node:child_process";
 import { log } from "@/lib/log";
 
-const ALLOWED_BANKS = ["ndb", "ntb", "dfcc", "combank", "peoples", "hnb", "mypromo"] as const;
+const ALLOWED_BANKS = ["ndb", "ntb", "dfcc", "combank", "peoples", "hnb", "mypromo", "seylan"] as const;
 type Bank = (typeof ALLOWED_BANKS)[number];
 
 export const dynamic = "force-dynamic";

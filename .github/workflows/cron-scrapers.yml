@@ -26,6 +26,7 @@ on:
                             # (aggregator; runs 5 min after ndb so the
                             # cross-source dedup sees fresh first-party
                             # rows from the earlier scraper)
+    - cron: "15 */6 * * *"  # 00:15, …                       → seylan
   workflow_dispatch:
     inputs:
       bank:
@@ -41,6 +42,7 @@ on:
           - peoples
           - hnb
           - mypromo
+          - seylan
 
 permissions:
   contents: read
@@ -69,6 +71,7 @@ jobs:
             "40 */6 * * *") echo "bank=peoples" >> "$GITHUB_OUTPUT" ;;
             "50 */6 * * *") echo "bank=hnb"     >> "$GITHUB_OUTPUT" ;;
             "5 */6 * * *")  echo "bank=mypromo" >> "$GITHUB_OUTPUT" ;;
+            "15 */6 * * *") echo "bank=seylan"  >> "$GITHUB_OUTPUT" ;;
             *)
               echo "::error::Unrecognized schedule: $SCHEDULE"
               exit 1
