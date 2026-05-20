@@ -127,6 +127,7 @@ cp .env.example .env
 | `CRON_SECRET`              | Header secret for the `expire-offers` cron endpoint                  |
 | `SEED_SUPERADMIN_EMAIL`    | Bootstrapped super-admin email (default `super@example.com`)         |
 | `SEED_SUPERADMIN_PASSWORD` | Bootstrapped super-admin password                                    |
+| `NEXT_PUBLIC_GA_ID`        | _(Optional)_ Google Analytics 4 measurement ID. Skipped if unset.    |
 
 ### 3. Create and migrate the database
 
