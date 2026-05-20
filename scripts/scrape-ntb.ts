@@ -8,6 +8,7 @@ import {
   getCardTypeIdsByKind,
   importOffer,
   isGarbageAlt,
+  isLikelyImageUrl,
   pruneOrphanMerchants,
   resetOffersForBank,
 } from "./_shared";
@@ -125,13 +126,18 @@ function parseBucketDetail(
 ): { bannerImage: string | null; rows: ParsedRow[]; pageTitle: string } {
   const $ = load(html);
   const pageTitle = $("h1").first().text().trim();
-  // Banner image — first big page-hero image. NTB uses `.promo-image img` style
-  // earlier; on detail it's `.page-hero-content` adjacent.
+  // Banner image. NTB's per-promotion banner lives at
+  //   `div.info-header > .promo-brand-image > img`
+  // pointing to their S3-backed CDN at `assets.nationstrust.com`.
+  // Earlier attempts used `.page-hero-content img` (the generic site
+  // chrome — returns `assets/images/home-dark.svg` for every detail
+  // page) and `.promo-image img` (the "Related promotions" carousel
+  // further down the page — returns a random unrelated banner). Both
+  // are wrong. `.promo-brand-image img` is the only selector that
+  // points to *this* promotion's banner.
   let bannerImage: string | null = null;
-  const heroImg = $(".page-hero-content img, .page-hero-image img, .promo-image img")
-    .first()
-    .attr("src");
-  if (heroImg && !isGarbageAlt(heroImg)) bannerImage = heroImg;
+  const heroImg = $(".promo-brand-image img").first().attr("src");
+  if (heroImg && isLikelyImageUrl(heroImg)) bannerImage = heroImg;
 
   const rows: ParsedRow[] = [];
   $(".saving-rate-table table tr").each((_i, tr) => {
