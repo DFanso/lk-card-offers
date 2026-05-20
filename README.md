@@ -197,14 +197,19 @@ bun run uploads:prune
 
 **Scheduled (Dokploy → Schedules):**
 
-| Field   | Value                                              |
-| ------- | -------------------------------------------------- |
-| Name    | `scrape-ndb`                                       |
-| Service | (the deployed app)                                 |
-| Command | `bun run scrape:ndb`                               |
-| Cron    | `0 4 * * *` (4 am UTC daily, or whatever you like) |
+Add one schedule per scraper. Each is idempotent on `offers.sourceUrl`, so re-running just picks up anything new. Stagger the cron offsets so they don't all hit the DB (and the source sites) at the same minute:
 
-Add one per scraper. Each is idempotent on `offers.sourceUrl`, so re-running on a schedule just refreshes anything new.
+| Name             | Command                          | Cron            |
+| ---------------- | -------------------------------- | --------------- |
+| `scrape-ndb`     | `bun run scrape:ndb`             | `0 */6 * * *`   |
+| `scrape-ntb`     | `bun run scrape:ntb`             | `10 */6 * * *`  |
+| `scrape-dfcc`    | `bun run scrape:dfcc`            | `20 */6 * * *`  |
+| `scrape-combank` | `bun run scrape:combank`         | `30 */6 * * *`  |
+| `scrape-peoples` | `bun run scrape:peoples`         | `40 */6 * * *`  |
+| `normalize`      | `bun run merchants:normalize`    | `50 */6 * * *`  |
+| `prune-uploads`  | `bun run uploads:prune`          | `0 3 * * *`     |
+
+`*/6` runs at 00:00, 06:00, 12:00, 18:00 UTC. Set Service = the deployed app for all of them.
 
 **External cron (no Dokploy schedule needed):**
 
