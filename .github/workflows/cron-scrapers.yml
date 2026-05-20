@@ -5,9 +5,14 @@ name: Cron · scrape banks
 # can drift by several minutes; that's fine — scrapers are idempotent on
 # `offers.sourceUrl`.
 #
-# Requires repo secrets:
-#   CRON_SCRAPE_BASE_URL   e.g. https://your-domain (no trailing slash)
-#   CRON_SECRET            same value as the deployed app's CRON_SECRET
+# Reuses the same secrets the expire-offers cron already needs — no new
+# repo secrets required:
+#   CRON_EXPIRE_OFFERS_URL  Either the bare host (`https://your-domain`) or
+#                           the full URL (`https://your-domain/api/cron/expire-offers`).
+#                           Either is fine: we strip any trailing
+#                           `/api/cron/expire-offers` and trailing slash, then
+#                           append `/api/cron/scrape/<bank>`.
+#   CRON_SECRET             Same value as the deployed app's CRON_SECRET.
 
 on:
   schedule:
@@ -64,19 +69,28 @@ jobs:
               ;;
           esac
 
-      - name: Validate secrets
+      - name: Resolve base URL + validate secrets
+        id: env
         env:
-          BASE_URL: ${{ secrets.CRON_SCRAPE_BASE_URL }}
+          RAW_URL: ${{ secrets.CRON_EXPIRE_OFFERS_URL }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
         run: |
-          if [ -z "$BASE_URL" ] || [ -z "$CRON_SECRET" ]; then
-            echo "::error::CRON_SCRAPE_BASE_URL and CRON_SECRET must be set in repo secrets."
+          set -euo pipefail
+          if [ -z "${RAW_URL:-}" ] || [ -z "${CRON_SECRET:-}" ]; then
+            echo "::error::CRON_EXPIRE_OFFERS_URL and CRON_SECRET must be set in repo secrets."
             exit 1
           fi
+          # Strip /api/cron/expire-offers suffix (if the secret holds the
+          # full URL) and any trailing slash — leaves a bare host like
+          # https://offers.dfanso.dev.
+          BASE_URL="${RAW_URL%/api/cron/expire-offers}"
+          BASE_URL="${BASE_URL%/}"
+          echo "base_url=${BASE_URL}" >> "$GITHUB_OUTPUT"
+          echo "Resolved base URL: $BASE_URL"
 
       - name: Trigger scrape · ${{ steps.pick.outputs.bank }}
         env:
-          BASE_URL: ${{ secrets.CRON_SCRAPE_BASE_URL }}
+          BASE_URL: ${{ steps.env.outputs.base_url }}
           CRON_SECRET: ${{ secrets.CRON_SECRET }}
           BANK: ${{ steps.pick.outputs.bank }}
         run: |

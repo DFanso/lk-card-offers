@@ -212,10 +212,10 @@ bun run banks:dedupe         # one-off: merge dupe bank rows (e.g. peoples/peopl
 | `40 */6 * * *`   | People's Bank (`scrape-peoples`)|
 | `50 */6 * * *`   | HNB (`scrape-hnb`)              |
 
-Enable it by setting two repository secrets:
+It reuses the same two repo secrets the expire-offers workflow already needs — nothing new to add:
 
-- `CRON_SCRAPE_BASE_URL` — e.g. `https://your-domain` (no trailing slash)
-- `CRON_SECRET` — same value as the server `CRON_SECRET` env var
+- `CRON_EXPIRE_OFFERS_URL` — either the bare host (`https://your-domain`) or the full expire-offers URL. The scraper workflow strips off `/api/cron/expire-offers` if present and appends `/api/cron/scrape/<bank>`.
+- `CRON_SECRET` — same value as the server `CRON_SECRET` env var.
 
 You can also trigger any single bank manually from the Actions tab (workflow_dispatch). Each scraper is idempotent on `offers.sourceUrl`, so a re-run just picks up anything new.
 
