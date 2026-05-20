@@ -59,6 +59,23 @@ Investigation summary for everything that was requested but couldn't ship:
 - Returns a 959-byte placeholder homepage with no promo section, no sitemap, no card listings.
 - **Decision**: skip until the site is rebuilt.
 
+## Alternative aggregator sites investigated (2026-05)
+
+After building the mypromo.lk scraper, audited every other site that lists Sri Lankan bank card promotions, looking for additional coverage of the blocked banks (BOC, Sampath, Pan Asia, Union, etc.). Conclusion: **mypromo.lk is the only viable aggregator currently active**. The rest are catalogued here so we don't repeat the exercise:
+
+| Site | Probe result | Reason to skip |
+|---|---|---|
+| `anycardoffers.com` | WordPress + HivePress. `wp-json` locked down; `/hp_listing-sitemap.xml` exposes the full inventory. | **22 offers total, last `lastmod` Sep 2025** — site is effectively abandoned. |
+| `deals4me.lk` | `/sitemap.xml` is corrupted (populated with `dailymirror.lk` news URLs, not their own pages). Bank pages render only modal chrome. | Site is abandoned. |
+| `creditcardoffers.lk` | React SPA. Backend is AWS API Gateway: `*.execute-api.us-east-1.amazonaws.com/{demo,qa}/...`. `insight.creditcardoffers.lk/api/v1/openapi.json` is a separate FastAPI analytics backend (only impression/insight endpoints, no offer data). | The data API DNS didn't resolve from our test environment — would need to be probed from the deployment container to know if it's usable. |
+| `daraz.lk/wow/i/lk/campaigns/{bank-name}` | Loads fine (no JS gate), substantial markup. Has campaign pages for BOC, Union, Commercial, NDB, HNB, HSBC, Citi, Amex. | These are **Daraz-only** discounts ("10% off at Daraz with your Union Bank card") — fundamentally a different category from merchant offers. Would dilute the catalog without a UI distinction. |
+| `yamu.lk/discounts` | All `/discounts`, `/deals` paths return 404. | Their card-deal coverage migrated to the **Coffer** mobile app, which isn't scrapeable. |
+| `loyalty.sampathbank.lk/Ultrarewards/specialOffers` | Renders chrome only; offer list loads via JS. | Same blocker as the main Sampath site. |
+| `rewardzplus.boc.lk` | Connection refused / no response. | Subdomain offline or geo-blocked, same as `boc.lk` apex. |
+| `promo.lk`, `thepromo.lk` | DNS does not resolve. | Domain parked/offline. |
+
+If a new aggregator pops up later, the playbook is in `scripts/scrape-mypromo.ts` — most are WordPress or ASP.NET sites with paginated AJAX endpoints; the JSON-LD `Offer` schema is the right thing to parse when it's present.
+
 ## Adding a new scraper
 
 See [CONTRIBUTING.md](../CONTRIBUTING.md#adding-a-bank-scraper) for the skeleton.
