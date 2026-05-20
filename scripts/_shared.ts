@@ -278,6 +278,21 @@ export async function importOffer(
   bankId: string,
   cardTypeIdList: string[],
 ): Promise<"created" | "skipped" | "no-category"> {
+  return importOfferMultiBank(input, [bankId], cardTypeIdList);
+}
+
+/**
+ * Same as `importOffer` but attaches the offer to multiple banks. Useful
+ * for scrapers like mypromo.lk where a single promotion is shared across
+ * several banks (or where bank affiliation can't be pinned down and we
+ * want the offer to surface under every bank's filter).
+ */
+export async function importOfferMultiBank(
+  input: ImportInput,
+  bankIds: string[],
+  cardTypeIdList: string[],
+): Promise<"created" | "skipped" | "no-category"> {
+  if (bankIds.length === 0) return "skipped";
   const categoryId = await ensureCategoryBySlug(input.categorySlug);
   if (!categoryId) return "no-category";
   if (await offerExistsBySource(input.sourceUrl)) return "skipped";
@@ -304,10 +319,12 @@ export async function importOffer(
     .returning({ id: offers.id });
 
   const offerId = inserted[0].id;
-  await db
-    .insert(offerBanks)
-    .values({ offerId, bankId })
-    .onConflictDoNothing();
+  for (const bankId of bankIds) {
+    await db
+      .insert(offerBanks)
+      .values({ offerId, bankId })
+      .onConflictDoNothing();
+  }
   for (const ctId of cardTypeIdList) {
     await db
       .insert(offerCardTypes)
@@ -315,6 +332,85 @@ export async function importOffer(
       .onConflictDoNothing();
   }
   return "created";
+}
+
+/**
+ * Cross-source content dedup helper. Looks for an offer already in the DB
+ * with the same merchant and a similar title that is still active in the
+ * same general validity window. Designed for the mypromo.lk scraper, which
+ * imports offers we may already have from first-party bank scrapers under
+ * a different `sourceUrl` (so the normal `offerExistsBySource` dedup
+ * doesn't fire).
+ *
+ * Returns the matching offer id when found, otherwise null. Match
+ * criteria:
+ *   - same `merchant_id` (case-insensitive merchant name match via
+ *     `ensureMerchant` upstream)
+ *   - `endDate` within ±7 days of the candidate's endDate
+ *   - title word-overlap >= 0.5 (Jaccard on normalised tokens, excluding
+ *     a small stop-word list)
+ *
+ * Tuned for recall on the kinds of duplicates mypromo creates — the
+ * threshold is intentionally loose because mypromo rewrites titles. Some
+ * dupes will still slip through; that's an acceptable trade for not
+ * collapsing distinct offers from the same merchant.
+ */
+const TITLE_STOP_WORDS = new Set([
+  "at", "the", "a", "an", "of", "on", "in", "with", "and", "or", "to", "for",
+  "your", "off", "from", "by", "up", "is", "are", "this", "these", "all",
+  "any", "you", "card", "cards", "bank", "banks", "credit", "debit",
+  "mastercard", "visa", "amex", "exclusive", "special", "offer", "offers",
+  "promotion", "promotions", "discount", "discounts", "enjoy", "get", "save",
+  "savings", "deal", "deals",
+]);
+
+function normaliseTitleTokens(title: string): Set<string> {
+  return new Set(
+    title
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, " ")
+      .split(/\s+/)
+      .filter((t) => t.length >= 3 && !TITLE_STOP_WORDS.has(t)),
+  );
+}
+
+function jaccard(a: Set<string>, b: Set<string>): number {
+  if (a.size === 0 || b.size === 0) return 0;
+  let intersect = 0;
+  for (const t of a) if (b.has(t)) intersect++;
+  return intersect / (a.size + b.size - intersect);
+}
+
+export async function findContentDuplicate(
+  merchantId: string,
+  title: string,
+  endDate: string,
+): Promise<string | null> {
+  // ±7 day window on endDate.
+  const end = new Date(endDate);
+  const lo = new Date(end);
+  lo.setDate(lo.getDate() - 7);
+  const hi = new Date(end);
+  hi.setDate(hi.getDate() + 7);
+  const loStr = lo.toISOString().slice(0, 10);
+  const hiStr = hi.toISOString().slice(0, 10);
+
+  const candidates = await db
+    .select({ id: offers.id, title: offers.title })
+    .from(offers)
+    .where(
+      sql`${offers.merchantId} = ${merchantId}
+        and ${offers.endDate} between ${loStr} and ${hiStr}`,
+    );
+
+  if (candidates.length === 0) return null;
+  const incoming = normaliseTitleTokens(title);
+  for (const c of candidates) {
+    if (jaccard(incoming, normaliseTitleTokens(c.title)) >= 0.5) {
+      return c.id;
+    }
+  }
+  return null;
 }
 
 export async function resetOffersForBank(bankId: string) {
