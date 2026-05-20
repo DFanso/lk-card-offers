@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { listOffers } from "@/lib/queries-server/offers";
 import {
@@ -11,6 +12,20 @@ import { Input } from "@/components/ui/input";
 import { Disclaimer } from "@/components/site/disclaimer";
 
 export const revalidate = 300;
+
+export const metadata: Metadata = {
+  title: "LK Card Offers — Sri Lankan credit & debit card promotions",
+  description:
+    "Browse the latest credit and debit card offers from Sri Lankan banks — DFCC, Commercial, HNB, NDB, Nations Trust, People's Bank. Filter by bank, card type, and category.",
+  alternates: { canonical: "/" },
+  openGraph: {
+    type: "website",
+    url: "/",
+    title: "LK Card Offers — Sri Lankan credit & debit card promotions",
+    description:
+      "Browse the latest credit and debit card offers from Sri Lankan banks — DFCC, Commercial, HNB, NDB, Nations Trust, People's Bank.",
+  },
+};
 
 const SEVEN_DAYS_MS = 7 * 86400000;
 

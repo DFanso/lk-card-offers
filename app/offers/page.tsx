@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import Link from "next/link";
 import { listOffers } from "@/lib/queries-server/offers";
 import { OfferCard } from "@/components/site/offer-card";
@@ -6,6 +7,37 @@ import { Disclaimer } from "@/components/site/disclaimer";
 import { Pagination } from "@/components/site/pagination";
 
 export const revalidate = 300;
+
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const sp = await searchParams;
+  // Treat any URL with a filter or pagination param as a faceted view —
+  // canonical points to the bare /offers page and we tell Google not to
+  // index the variant. Stops duplicate-content cannibalisation across
+  // dozens of filter combinations.
+  const hasFilters = Boolean(
+    sp.bank || sp.cardType || sp.category || sp.q || sp.page,
+  );
+  return {
+    title: "All offers",
+    description:
+      "All published credit and debit card offers from Sri Lankan banks — DFCC, Commercial, HNB, NDB, Nations Trust, People's Bank. Filter by bank, card type, and category.",
+    alternates: { canonical: "/offers" },
+    robots: hasFilters
+      ? { index: false, follow: true }
+      : { index: true, follow: true },
+    openGraph: {
+      type: "website",
+      url: "/offers",
+      title: "All offers · LK Card Offers",
+      description:
+        "Every live credit and debit card offer in our catalog — filterable by bank, card type, and category.",
+    },
+  };
+}
 
 export default async function OffersPage({
   searchParams,

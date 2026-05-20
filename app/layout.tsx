@@ -19,18 +19,45 @@ const SITE_URL =
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
   title: {
-    default: "LK Card Offers",
+    default: "LK Card Offers — Sri Lankan credit & debit card promotions",
     template: "%s · LK Card Offers",
   },
   description:
     "A community-curated catalog of valid credit & debit card promotions from Sri Lankan banks. Filter by bank, card, and category.",
   applicationName: "LK Card Offers",
+  keywords: [
+    "Sri Lanka credit card offers",
+    "Sri Lanka debit card promotions",
+    "DFCC card offers",
+    "Commercial Bank card offers",
+    "HNB card promotions",
+    "NDB card promotions",
+    "Nations Trust card offers",
+    "People's Bank card offers",
+    "card discounts Sri Lanka",
+    "merchant promotions Sri Lanka",
+  ],
+  authors: [{ name: "LK Card Offers" }],
+  creator: "LK Card Offers",
+  publisher: "LK Card Offers",
+  alternates: { canonical: "/" },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-snippet": -1,
+      "max-image-preview": "large",
+      "max-video-preview": -1,
+    },
+  },
   openGraph: {
     type: "website",
     siteName: "LK Card Offers",
     locale: "en_US",
     url: "/",
-    title: "LK Card Offers",
+    title: "LK Card Offers — Sri Lankan credit & debit card promotions",
     description:
       "A community-curated catalog of valid credit & debit card promotions from Sri Lankan banks. Filter by bank, card, and category.",
     // og:image is auto-attached from app/opengraph-image.png by the
@@ -40,10 +67,11 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "LK Card Offers",
+    title: "LK Card Offers — Sri Lankan credit & debit card promotions",
     description:
       "A community-curated catalog of valid credit & debit card promotions from Sri Lankan banks.",
   },
+  category: "finance",
 };
 
 export const viewport: Viewport = {
@@ -61,6 +89,39 @@ import { THEME_INIT_SCRIPT } from "@/components/providers/theme-provider"
 import { Toaster } from "sonner"
 import { SiteHeader } from "@/components/site/header"
 import { SiteFooter } from "@/components/site/footer"
+import { GoogleAnalytics } from "@/components/site/google-analytics"
+import { JsonLd } from "@/components/site/json-ld"
+
+// Sitewide structured data. WebSite gives Google the canonical name + a
+// SearchAction Sitelinks Search Box hook (search box appears in SERP);
+// Organization is the matching publisher record used by Article rich
+// results on offer detail pages.
+const websiteSchema = {
+  "@context": "https://schema.org",
+  "@type": "WebSite",
+  name: "LK Card Offers",
+  alternateName: "LK Card Offers — Sri Lankan credit & debit card promotions",
+  url: SITE_URL,
+  inLanguage: "en-LK",
+  potentialAction: {
+    "@type": "SearchAction",
+    target: {
+      "@type": "EntryPoint",
+      urlTemplate: `${SITE_URL}/offers?q={search_term_string}`,
+    },
+    "query-input": "required name=search_term_string",
+  },
+};
+
+const organizationSchema = {
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  name: "LK Card Offers",
+  url: SITE_URL,
+  logo: `${SITE_URL}/icon.svg`,
+  description:
+    "Community-curated catalog of valid credit & debit card promotions from Sri Lankan banks.",
+};
 
 export default function RootLayout({
   children,
@@ -73,6 +134,8 @@ export default function RootLayout({
         <script
           dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }}
         />
+        <JsonLd data={websiteSchema} />
+        <JsonLd data={organizationSchema} />
       </head>
       <body className="font-mono antialiased">
         <Providers>
@@ -85,6 +148,7 @@ export default function RootLayout({
           </div>
         </Providers>
         <Toaster />
+        <GoogleAnalytics />
       </body>
     </html>
   );

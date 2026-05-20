@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Disclaimer } from "@/components/site/disclaimer";
+import { JsonLd } from "@/components/site/json-ld";
 
 export const revalidate = 300;
 
@@ -84,9 +85,73 @@ export default async function OfferDetailPage({
   if (offer.status !== "published" || offer.endDate < todayStr) notFound();
 
   const remaining = daysLeft(offer.endDate);
+  const base = siteUrl();
+  const offerUrl = `${base}/offers/${offer.id}`;
+  const offerImage = offer.imageUrl
+    ? offer.imageUrl.startsWith("http")
+      ? offer.imageUrl
+      : `${base}${offer.imageUrl}`
+    : `${base}/og-default.png`;
+
+  // Article fits better than schema.org Offer here — `Offer` requires
+  // price/priceCurrency/availability, but these are merchant promotions
+  // (discounts, BOGO, etc.) attached to existing cards, not products for
+  // sale. Article still earns rich-result eligibility and lets Google
+  // surface the byline + image. `temporalCoverage` carries the
+  // promotion's validity window in ISO 8601 interval form.
+  //
+  // `datePublished`/`dateModified` are intentionally omitted: the
+  // `getOfferById` query doesn't select offer timestamps and adding them
+  // would expand the public type used elsewhere. The schema is still
+  // valid without them.
+  const articleSchema = {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: offer.title,
+    description: offer.description.slice(0, 500).replace(/\s+/g, " "),
+    image: [offerImage],
+    author: { "@type": "Organization", name: "LK Card Offers" },
+    publisher: {
+      "@type": "Organization",
+      name: "LK Card Offers",
+      logo: { "@type": "ImageObject", url: `${base}/icon.svg` },
+    },
+    mainEntityOfPage: { "@type": "WebPage", "@id": offerUrl },
+    about: offer.merchant?.name,
+    articleSection: offer.category?.name,
+    temporalCoverage: `${offer.startDate}/${offer.endDate}`,
+  };
+
+  const breadcrumbSchema = {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: [
+      {
+        "@type": "ListItem",
+        position: 1,
+        name: "Home",
+        item: `${base}/`,
+      },
+      {
+        "@type": "ListItem",
+        position: 2,
+        name: "Offers",
+        item: `${base}/offers`,
+      },
+      {
+        "@type": "ListItem",
+        position: 3,
+        name: offer.merchant?.name ?? offer.title,
+        item: offerUrl,
+      },
+    ],
+  };
 
   return (
     <article className="mx-auto max-w-4xl space-y-8">
+      <JsonLd data={articleSchema} />
+      <JsonLd data={breadcrumbSchema} />
+
       <Link
         href="/offers"
         className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground transition-colors hover:text-foreground"
