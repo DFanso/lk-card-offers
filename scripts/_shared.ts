@@ -84,6 +84,30 @@ export async function downloadImage(
   }
 }
 
+/**
+ * Cheap sanity check for image URLs scraped out of HTML. Returns true when
+ * the string looks like a usable image reference — i.e. starts with
+ * `http(s)://` or `/`, and ends in a known image extension or the path is
+ * underneath an obvious CDN/asset prefix.
+ *
+ * Use this instead of `isGarbageAlt` for image-src validation:
+ * `isGarbageAlt` is tuned for short alt-text strings and over-rejects
+ * URLs because they naturally have a high non-alpha character ratio
+ * (`://`, dots, digits, etc.).
+ */
+export function isLikelyImageUrl(src: string): boolean {
+  const s = src.trim();
+  if (!s) return false;
+  if (!/^(https?:\/\/|\/)/i.test(s)) return false;
+  // Strip query string before checking extension.
+  const pathish = s.split("?")[0].split("#")[0].toLowerCase();
+  if (/\.(jpe?g|png|webp|gif|svg|avif)(\.[a-z]+)?$/i.test(pathish)) return true;
+  // Allow URLs that look like they belong on a known asset/CDN host even
+  // without a recognised extension (some CDNs strip the suffix).
+  if (/\b(assets?|cdn|images?|media|uploads)\b/i.test(pathish)) return true;
+  return false;
+}
+
 export function isGarbageAlt(alt: string): boolean {
   const lc = alt.trim().toLowerCase();
   if (!lc) return true;
