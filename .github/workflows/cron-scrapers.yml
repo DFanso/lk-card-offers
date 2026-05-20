@@ -1,0 +1,97 @@
+name: Cron · scrape banks
+
+# Runs each scraper every 6 hours, staggered 10 min apart so we don't hammer
+# the source sites and the DB at the same minute. GitHub Actions schedules
+# can drift by several minutes; that's fine — scrapers are idempotent on
+# `offers.sourceUrl`.
+#
+# Requires repo secrets:
+#   CRON_SCRAPE_BASE_URL   e.g. https://your-domain (no trailing slash)
+#   CRON_SECRET            same value as the deployed app's CRON_SECRET
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"   # 00:00, 06:00, 12:00, 18:00 UTC → ndb
+    - cron: "10 */6 * * *"  # 00:10, …                     → ntb
+    - cron: "20 */6 * * *"  #                                → dfcc
+    - cron: "30 */6 * * *"  #                                → combank
+    - cron: "40 */6 * * *"  #                                → peoples
+  workflow_dispatch:
+    inputs:
+      bank:
+        description: "Bank to scrape"
+        required: true
+        default: "ndb"
+        type: choice
+        options:
+          - ndb
+          - ntb
+          - dfcc
+          - combank
+          - peoples
+
+permissions:
+  contents: read
+
+jobs:
+  scrape:
+    name: POST /api/cron/scrape/${{ github.event.inputs.bank || 'auto' }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Resolve bank from schedule
+        id: pick
+        env:
+          SCHEDULE: ${{ github.event.schedule }}
+          INPUT_BANK: ${{ github.event.inputs.bank }}
+        run: |
+          set -euo pipefail
+          if [ -n "${INPUT_BANK:-}" ]; then
+            echo "bank=${INPUT_BANK}" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+          case "$SCHEDULE" in
+            "0 */6 * * *")  echo "bank=ndb"     >> "$GITHUB_OUTPUT" ;;
+            "10 */6 * * *") echo "bank=ntb"     >> "$GITHUB_OUTPUT" ;;
+            "20 */6 * * *") echo "bank=dfcc"    >> "$GITHUB_OUTPUT" ;;
+            "30 */6 * * *") echo "bank=combank" >> "$GITHUB_OUTPUT" ;;
+            "40 */6 * * *") echo "bank=peoples" >> "$GITHUB_OUTPUT" ;;
+            *)
+              echo "::error::Unrecognized schedule: $SCHEDULE"
+              exit 1
+              ;;
+          esac
+
+      - name: Validate secrets
+        env:
+          BASE_URL: ${{ secrets.CRON_SCRAPE_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$BASE_URL" ] || [ -z "$CRON_SECRET" ]; then
+            echo "::error::CRON_SCRAPE_BASE_URL and CRON_SECRET must be set in repo secrets."
+            exit 1
+          fi
+
+      - name: Trigger scrape · ${{ steps.pick.outputs.bank }}
+        env:
+          BASE_URL: ${{ secrets.CRON_SCRAPE_BASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+          BANK: ${{ steps.pick.outputs.bank }}
+        run: |
+          set -euo pipefail
+          response=$(mktemp)
+          # 60s is generous — the endpoint is fire-and-forget and replies
+          # in <1s after spawning the child process.
+          http_code=$(curl --silent --show-error \
+            --max-time 60 \
+            --output "$response" \
+            --write-out "%{http_code}" \
+            -X POST \
+            -H "x-cron-secret: $CRON_SECRET" \
+            "$BASE_URL/api/cron/scrape/$BANK")
+          echo "HTTP $http_code"
+          cat "$response"
+          echo
+          if [ "$http_code" -lt 200 ] || [ "$http_code" -ge 300 ]; then
+            echo "::error::Scrape kickoff for $BANK failed with HTTP $http_code"
+            exit 1
+          fi
