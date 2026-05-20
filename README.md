@@ -193,22 +193,31 @@ bun run scrape:combank
 bun run scrape:peoples
 bun run merchants:normalize
 bun run uploads:prune
+bun run banks:dedupe         # one-off: merge dupe bank rows (e.g. peoples/peoples-bank)
 ```
 
-**Scheduled (Dokploy → Schedules):**
+> ⚠️ **Persistent volume required for scraped images.** The People's Bank scraper downloads images to `/app/public/uploads/scraped/peoples/` because that CDN blocks hotlinking. If your deploy doesn't mount a volume at `/app/public/uploads`, the files vanish on every container restart and the offer cards show 404'd images. In Dokploy → your service → **Volumes**, add `/app/public/uploads` mapped to a host directory or named volume, then re-run `bun run scrape:peoples` once to repopulate.
 
-| Field   | Value                                              |
-| ------- | -------------------------------------------------- |
-| Name    | `scrape-ndb`                                       |
-| Service | (the deployed app)                                 |
-| Command | `bun run scrape:ndb`                               |
-| Cron    | `0 4 * * *` (4 am UTC daily, or whatever you like) |
+**Scheduled (GitHub Actions, every 6 hours):**
 
-Add one per scraper. Each is idempotent on `offers.sourceUrl`, so re-running on a schedule just refreshes anything new.
+`.github/workflows/cron-scrapers.yml` triggers each scraper via HTTP every 6 hours, staggered 10 min apart. The route handler at `POST /api/cron/scrape/[bank]` is header-guarded by `CRON_SECRET` and spawns the matching `bun scripts/scrape-<bank>.ts` as a background subprocess inside the running container. It replies `202 started` once the child PID is up — output streams to the container logs.
 
-**External cron (no Dokploy schedule needed):**
+| Schedule (UTC)   | Bank                            |
+| ---------------- | ------------------------------- |
+| `0 */6 * * *`    | NDB (`scrape-ndb`)              |
+| `10 */6 * * *`   | NTB (`scrape-ntb`)              |
+| `20 */6 * * *`   | DFCC (`scrape-dfcc`)            |
+| `30 */6 * * *`   | Commercial Bank (`scrape-combank`) |
+| `40 */6 * * *`   | People's Bank (`scrape-peoples`)|
 
-If you'd rather not use Dokploy's scheduler, the same pattern as `.github/workflows/cron-expire-offers.yml` works — a GitHub Action that `curl`s an HTTP endpoint. We don't currently expose scrapers via HTTP, but you can add a `/api/cron/scrape-<bank>` route guarded by `CRON_SECRET` the same way.
+Enable it by setting two repository secrets:
+
+- `CRON_SCRAPE_BASE_URL` — e.g. `https://your-domain` (no trailing slash)
+- `CRON_SECRET` — same value as the server `CRON_SECRET` env var
+
+You can also trigger any single bank manually from the Actions tab (workflow_dispatch). Each scraper is idempotent on `offers.sourceUrl`, so a re-run just picks up anything new.
+
+For `merchants:normalize` and `uploads:prune` (housekeeping that doesn't need the every-6h cadence), run them ad-hoc from the Dokploy Terminal as shown above.
 
 ---
 

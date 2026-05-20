@@ -136,7 +136,11 @@ async function main() {
   const reset = args.includes("--reset");
 
   console.log("Scraping People's Bank special offers…");
-  const bankId = await ensureBank("People's Bank", "peoples-bank");
+  // Slug MUST match db/seed.ts (`peoples`). Earlier versions used
+  // `peoples-bank`, which created a duplicate bank row alongside the seeded
+  // one and surfaced "People's Bank" twice in the filter UI. If you upgraded
+  // from that version, run `bun scripts/dedupe-banks.ts` once to merge.
+  const bankId = await ensureBank("People's Bank", "peoples");
 
   if (reset) {
     await resetOffersForBank(bankId);
