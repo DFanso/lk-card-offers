@@ -35,5 +35,16 @@ export default auth((req) => {
 });
 
 export const config = {
-  matcher: ["/((?!api|_next/static|_next/image|favicon.ico).*)"],
+  // Skip the middleware for paths that must be served as raw static
+  // files. If the middleware runs on `/uploads/*`, Auth.js attaches
+  // CSRF cookies and the request gets handled by the dynamic router
+  // instead of Next.js's `/public/*` static handler — which means every
+  // user-uploaded offer image and every scraper-downloaded People's
+  // Bank image 404s.
+  //
+  // Convention metadata routes (`/icon.svg`, `/opengraph-image.png`,
+  // `/apple-icon.svg`, `/manifest.webmanifest`, `/robots.txt`,
+  // `/sitemap.xml`) are emitted as Next.js routes and are safe to leave
+  // in the matcher — but excluding `uploads` is mandatory.
+  matcher: ["/((?!api|_next/static|_next/image|favicon.ico|uploads).*)"],
 };
