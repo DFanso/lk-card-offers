@@ -22,7 +22,8 @@
     "scrape:ndb": "bun scripts/scrape-ndb.ts",
     "scrape:ntb": "bun scripts/scrape-ntb.ts",
     "uploads:prune": "bun scripts/prune-uploads.ts",
-    "merchants:normalize": "bun scripts/normalize-merchants.ts"
+    "merchants:normalize": "bun scripts/normalize-merchants.ts",
+    "banks:dedupe": "bun scripts/dedupe-banks.ts"
   },
   "dependencies": {
     "@auth/core": "^0.34.3",

@@ -193,7 +193,10 @@ bun run scrape:combank
 bun run scrape:peoples
 bun run merchants:normalize
 bun run uploads:prune
+bun run banks:dedupe         # one-off: merge dupe bank rows (e.g. peoples/peoples-bank)
 ```
+
+> ⚠️ **Persistent volume required for scraped images.** The People's Bank scraper downloads images to `/app/public/uploads/scraped/peoples/` because that CDN blocks hotlinking. If your deploy doesn't mount a volume at `/app/public/uploads`, the files vanish on every container restart and the offer cards show 404'd images. In Dokploy → your service → **Volumes**, add `/app/public/uploads` mapped to a host directory or named volume, then re-run `bun run scrape:peoples` once to repopulate.
 
 **Scheduled (GitHub Actions, every 6 hours):**
 
