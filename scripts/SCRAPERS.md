@@ -12,6 +12,7 @@ This catalog imports offers from Sri Lankan banks via one-shot scripts under `sc
 | NDB           | `bun scrape:ndb`     | `ndbbank.com/cards/card-offers/{category}`                    | 8 category pages, Bootstrap-rendered SSR — `.card.offer-card` per offer |
 | Nations Trust | `bun scrape:ntb`     | `nationstrust.com/promotions` + per-bucket detail pages       | Listing has ~20 buckets; each bucket detail page contains a `.saving-rate-table` with one merchant per `<tr>`. One DB offer per merchant row. |
 | HNB           | `bun scrape:hnb`     | JSON API at `venus.hnb.lk/api/get_all_web_card_promos`        | ~845 offers in one request (`?limit=2000`). Images hotlinked from `assets.hnb.lk/atdi/`. No category info in the API — assigned via title-keyword heuristic. |
+| mypromo.lk    | `bun scrape:mypromo` | `mypromo.lk/promotions/morecatpromos` (paginated HTML chunks) | ~80 distinct promos across 11 category pages. Aggregator covering banks we can't reach directly (Amana, BOC, Sampath, HSBC, Citi, Seylan, etc.). Each detail page exposes JSON-LD `Offer` schema with title/image/dates/merchant. Bank affiliation is regex-extracted from the title — most titles don't pin a bank, so those offers attach to the synthetic catch-all bank `mypromo-any` ("Any bank (mypromo)"). Cross-source dedup (`findContentDuplicate` in `_shared.ts`) skips offers we already have from first-party scrapers via fuzzy title + merchant + endDate match. Images hotlinked from `mypromo.azureedge.net`. |
 
 ## Blocked banks (investigated, not shippable without extra infra)
 

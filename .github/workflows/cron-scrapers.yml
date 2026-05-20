@@ -22,6 +22,10 @@ on:
     - cron: "30 */6 * * *"  #                                → combank
     - cron: "40 */6 * * *"  #                                → peoples
     - cron: "50 */6 * * *"  #                                → hnb
+    - cron: "5 */6 * * *"   # 00:05, 06:05, 12:05, 18:05    → mypromo
+                            # (aggregator; runs 5 min after ndb so the
+                            # cross-source dedup sees fresh first-party
+                            # rows from the earlier scraper)
   workflow_dispatch:
     inputs:
       bank:
@@ -36,6 +40,7 @@ on:
           - combank
           - peoples
           - hnb
+          - mypromo
 
 permissions:
   contents: read
@@ -63,6 +68,7 @@ jobs:
             "30 */6 * * *") echo "bank=combank" >> "$GITHUB_OUTPUT" ;;
             "40 */6 * * *") echo "bank=peoples" >> "$GITHUB_OUTPUT" ;;
             "50 */6 * * *") echo "bank=hnb"     >> "$GITHUB_OUTPUT" ;;
+            "5 */6 * * *")  echo "bank=mypromo" >> "$GITHUB_OUTPUT" ;;
             *)
               echo "::error::Unrecognized schedule: $SCHEDULE"
               exit 1
