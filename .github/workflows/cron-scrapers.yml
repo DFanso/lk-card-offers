@@ -16,6 +16,7 @@ on:
     - cron: "20 */6 * * *"  #                                → dfcc
     - cron: "30 */6 * * *"  #                                → combank
     - cron: "40 */6 * * *"  #                                → peoples
+    - cron: "50 */6 * * *"  #                                → hnb
   workflow_dispatch:
     inputs:
       bank:
@@ -29,6 +30,7 @@ on:
           - dfcc
           - combank
           - peoples
+          - hnb
 
 permissions:
   contents: read
@@ -55,6 +57,7 @@ jobs:
             "20 */6 * * *") echo "bank=dfcc"    >> "$GITHUB_OUTPUT" ;;
             "30 */6 * * *") echo "bank=combank" >> "$GITHUB_OUTPUT" ;;
             "40 */6 * * *") echo "bank=peoples" >> "$GITHUB_OUTPUT" ;;
+            "50 */6 * * *") echo "bank=hnb"     >> "$GITHUB_OUTPUT" ;;
             *)
               echo "::error::Unrecognized schedule: $SCHEDULE"
               exit 1
